@@ -1,0 +1,2658 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Google Photos Quota Reclaim</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><path d='M16 16 L16 2 A14 14 0 0 1 30 16 Z' fill='%23EA4335'/><path d='M16 16 L30 16 A14 14 0 0 1 16 30 Z' fill='%23FBBC05'/><path d='M16 16 L16 30 A14 14 0 0 1 2 16 Z' fill='%234285F4'/><path d='M16 16 L2 16 A14 14 0 0 1 16 2 Z' fill='%2334A853'/><circle cx='16' cy='16' r='5' fill='white'/></svg>"/>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg: #0f1117; --card: #1a1d27; --border: #2d3144; --border-hover: #3d4264;
+  --accent: #3b82f6; --accent-hover: #2563eb;
+  --success: #4ade80; --warn: #fbbf24; --error: #f87171;
+  --text: #e2e8f0; --muted: #64748b; --muted2: #475569;
+  --log-bg: #0a0c13; --log-info: #94a3b8;
+  --tint-weak: rgba(255,255,255,.04); --tint-medium: rgba(255,255,255,.06); --tint-strong: rgba(255,255,255,.08);
+  --hairline: rgba(255,255,255,.05);
+  --radius: 8px;
+}
+:root[data-theme="light"] {
+  --bg: #f3f4f6; --card: #ffffff; --border: #e2e5eb; --border-hover: #cdd2db;
+  --success: #16a34a; --warn: #b45309; --error: #dc2626;
+  --text: #1a1d27; --muted: #64748b; --muted2: #94a3b8;
+  --log-bg: #edeff2; --log-info: #64748b;
+  --tint-weak: rgba(0,0,0,.035); --tint-medium: rgba(0,0,0,.05); --tint-strong: rgba(0,0,0,.06);
+  --hairline: rgba(0,0,0,.08);
+}
+/* Dark-mode background shades — "default" above is one of five; these four are picked from
+   the theme dropdown and only ever apply while in dark mode (JS clears data-shade in light mode). */
+:root[data-shade="amoled"] {
+  --bg: #000000; --card: #0a0a0a; --border: #1c1c1c; --border-hover: #2a2a2a; --log-bg: #000000;
+}
+:root[data-shade="charcoal"] {
+  --bg: #08090a; --card: #131314; --border: #232324; --border-hover: #333335; --log-bg: #050505;
+}
+:root[data-shade="slate"] {
+  --bg: #1a1c22; --card: #24262e; --border: #383a44; --border-hover: #484a56; --log-bg: #15161a;
+}
+:root[data-shade="grey"] {
+  --bg: #232427; --card: #2e2f33; --border: #45464b; --border-hover: #57585d; --log-bg: #1c1d20;
+}
+/* Light-mode background shades — separate attribute from the dark ones above so the two
+   five-shade sets never collide; "default" is the base [data-theme="light"] block. */
+:root[data-theme="light"][data-shade-light="white"] {
+  --bg: #ffffff; --card: #fbfbfb; --border: #e8e8e8; --border-hover: #d4d4d4; --log-bg: #f5f5f5;
+}
+:root[data-theme="light"][data-shade-light="paper"] {
+  --bg: #faf9f7; --card: #ffffff; --border: #e5e2dc; --border-hover: #d1cdc4; --log-bg: #f2f0ec;
+}
+:root[data-theme="light"][data-shade-light="mist"] {
+  --bg: #eceef1; --card: #f8f9fb; --border: #d7dae0; --border-hover: #c0c4cc; --log-bg: #e4e6ea;
+}
+:root[data-theme="light"][data-shade-light="grey"] {
+  --bg: #e5e6e9; --card: #f1f2f4; --border: #cfd1d5; --border-hover: #b8babe; --log-bg: #dcdde0;
+}
+/* Accent palette — one consistent 500/600 shade pair per hue, spanning the full color wheel */
+:root[data-accent="indigo"]  { --accent: #6366f1; --accent-hover: #4f46e5; }
+:root[data-accent="violet"]  { --accent: #8b5cf6; --accent-hover: #7c3aed; }
+:root[data-accent="purple"]  { --accent: #a855f7; --accent-hover: #9333ea; }
+:root[data-accent="fuchsia"] { --accent: #d946ef; --accent-hover: #c026d3; }
+:root[data-accent="pink"]    { --accent: #ec4899; --accent-hover: #db2777; }
+:root[data-accent="rose"]    { --accent: #f43f5e; --accent-hover: #e11d48; }
+:root[data-accent="red"]     { --accent: #ef4444; --accent-hover: #dc2626; }
+:root[data-accent="orange"]  { --accent: #f97316; --accent-hover: #ea580c; }
+:root[data-accent="amber"]   { --accent: #f59e0b; --accent-hover: #d97706; }
+:root[data-accent="green"]   { --accent: #22c55e; --accent-hover: #16a34a; }
+:root[data-accent="emerald"] { --accent: #10b981; --accent-hover: #059669; }
+:root[data-accent="teal"]    { --accent: #14b8a6; --accent-hover: #0d9488; }
+:root[data-accent="cyan"]    { --accent: #06b6d4; --accent-hover: #0891b2; }
+body { background: var(--bg); color: var(--text); font-family: system-ui, -apple-system, "Segoe UI", "Microsoft JhengHei UI", "Microsoft JhengHei", "Microsoft YaHei UI", "Microsoft YaHei", "Yu Gothic UI", "Yu Gothic", sans-serif; font-size: 14px; height: 100vh; display: flex; flex-direction: column; overflow: hidden; transition: background .15s, color .15s; }
+.lang-dropdown { position: relative; flex-shrink: 0; }
+.lang-dropdown-btn { display: flex; align-items: center; gap: 5px; padding: 4px 12px; font-size: 12px; font-weight: 500; background: var(--border); border: none; border-radius: 20px; color: var(--text); cursor: pointer; white-space: nowrap; font-family: inherit; transition: background .15s, filter .15s; }
+.lang-dropdown-btn:hover { filter: brightness(1.2); }
+.lang-dropdown-chevron { font-size: 9px; color: var(--muted); display: inline-block; transition: transform .15s; }
+.lang-dropdown-btn.open .lang-dropdown-chevron { transform: rotate(180deg); }
+.lang-dropdown-menu { position: absolute; top: calc(100% + 5px); right: 0; background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 4px; min-width: 148px; z-index: 100; box-shadow: 0 8px 24px rgba(0,0,0,.45); display: none; }
+.lang-dropdown-menu.open { display: block; }
+.lang-option { display: flex; align-items: center; gap: 8px; padding: 6px 10px; border-radius: 5px; font-size: 12px; cursor: pointer; white-space: nowrap; color: var(--text); user-select: none; }
+.lang-option:hover { background: var(--tint-medium); }
+.lang-option.active { color: var(--accent); }
+.lang-option-check { width: 12px; font-size: 11px; flex-shrink: 0; }
+
+/* Theme dropdown — reuses .lang-dropdown/.lang-dropdown-btn/.lang-dropdown-menu for the trigger */
+.theme-menu { display: none; flex-direction: column; gap: 8px; padding: 8px; min-width: 200px; }
+.theme-menu.open { display: flex; }
+.theme-mode-row { display: flex; gap: 4px; }
+.theme-mode-btn { flex: 1; padding: 5px 0; font-size: 12px; font-weight: 500; background: var(--border); color: var(--text); border: none; border-radius: 6px; cursor: pointer; font-family: inherit; }
+.theme-mode-btn:hover { background: var(--border-hover); }
+.theme-mode-btn.active { background: var(--accent); color: #fff; }
+.theme-menu-label { font-size: 10px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+.theme-shade-row { display: flex; gap: 6px; }
+.theme-shade-swatch { width: 22px; height: 22px; border-radius: 6px; border: 2px solid var(--border); cursor: pointer; padding: 0; }
+.theme-shade-swatch:hover { filter: brightness(1.3); }
+.theme-shade-swatch.active { border-color: var(--accent); }
+.theme-accent-row { display: flex; gap: 6px; flex-wrap: wrap; }
+.theme-swatch { width: 20px; height: 20px; border-radius: 50%; border: 2px solid transparent; cursor: pointer; padding: 0; }
+.theme-swatch:hover { filter: brightness(1.15); }
+.theme-swatch.active { border-color: var(--text); }
+.album-quota-badge { display: inline-block; background: rgba(251,191,36,.18); color: var(--warn); border-radius: 3px; padding: 0 4px; font-size: 10px; font-weight: 700; margin-right: 3px; }
+
+/* Header — three stacked rows: title, CDP/ADB status, then actions */
+header { display: flex; flex-direction: column; gap: 8px; padding: 10px 16px; background: var(--card); border-bottom: 1px solid var(--border); flex-shrink: 0; }
+header h1 { font-size: 16px; font-weight: 600; text-align: center; white-space: normal; overflow-wrap: anywhere; }
+.header-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.header-divider { width: 1px; height: 20px; background: var(--border); flex-shrink: 0; }
+.badge { display: inline-flex; align-items: center; gap: 5px; padding: 5px 12px; border-radius: 20px; font-size: 12px; font-weight: 500; background: var(--border); cursor: pointer; user-select: none; white-space: nowrap; }
+.badge:hover { filter: brightness(1.2); }
+.badge.ok { background: rgba(74,222,128,.15); color: var(--success); }
+.badge.bad { background: rgba(248,113,113,.15); color: var(--error); }
+.badge.warn { background: rgba(251,191,36,.15); color: var(--warn); }
+.adb-device-select { background: var(--border); color: var(--text); border: none; border-radius: 20px; padding: 5px 10px; font-size: 12px; font-weight: 500; font-family: inherit; cursor: pointer; }
+.adb-device-select:disabled { cursor: default; opacity: .85; }
+.dot { width: 7px; height: 7px; border-radius: 50%; background: currentColor; flex-shrink: 0; }
+
+/* Header buttons — rounded to match the CDP/ADB status pills so the title bar reads as one set */
+header button.small { border-radius: 20px; padding: 5px 14px; }
+
+/* Layout */
+main { display: grid; grid-template-columns: 260px 1fr; grid-template-rows: 1fr 200px; flex: 1; min-height: 0; transition: grid-template-columns .15s, grid-template-rows .15s; }
+main.sidebar-collapsed { grid-template-columns: 40px 1fr; }
+main.log-collapsed { grid-template-rows: 1fr 38px; }
+
+/* Sidebar */
+aside { grid-row: 1 / 3; border-right: 1px solid var(--border); display: flex; flex-direction: column; overflow: hidden; }
+.sidebar-header { padding: 10px 12px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 6px; }
+.sidebar-header span { font-weight: 600; font-size: 13px; }
+#loadAlbumsBtn { font-size: 12px; padding: 4px 10px; margin-left: auto; }
+.collapse-btn { flex-shrink: 0; background: transparent; border: none; color: var(--muted); cursor: pointer; font-size: 12px; padding: 2px 4px; line-height: 1; border-radius: 4px; }
+.collapse-btn:hover { background: var(--tint-medium); color: var(--text); }
+main.sidebar-collapsed .sidebar-header { justify-content: center; padding: 10px 4px; }
+main.sidebar-collapsed .sidebar-header > *:not(.collapse-btn) { display: none; }
+main.sidebar-collapsed #albumList, main.sidebar-collapsed .sidebar-footer { display: none; }
+#albumList { flex: 1; overflow-y: auto; padding: 8px; }
+.album-item { display: flex; align-items: center; gap: 8px; padding: 7px 8px; border-radius: 6px; cursor: pointer; user-select: none; }
+.album-item:hover { background: var(--tint-weak); }
+
+/* Custom checkboxes */
+input[type=checkbox].custom-chk { appearance: none; -webkit-appearance: none; width: 15px; height: 15px; flex-shrink: 0; border: 1.5px solid var(--muted); border-radius: 4px; background: transparent; cursor: pointer; position: relative; transition: border-color .15s, background .15s; vertical-align: middle; }
+input[type=checkbox].custom-chk:hover { border-color: var(--accent); }
+input[type=checkbox].custom-chk:checked { background: var(--accent); border-color: var(--accent); }
+input[type=checkbox].custom-chk:checked::after { content: ''; position: absolute; left: 3px; top: 0px; width: 5px; height: 9px; border: 2px solid #fff; border-left: none; border-top: none; transform: rotate(45deg); }
+.album-name { flex: 1; font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.album-count { color: var(--muted); font-size: 11px; flex-shrink: 0; }
+.sidebar-footer { padding: 8px 10px; border-top: 1px solid var(--border); display: flex; gap: 6px; align-items: center; }
+#selCount { font-size: 11px; color: var(--muted); flex: 1; }
+
+/* Content */
+.content { grid-row: 1; padding: 14px; overflow-y: auto; display: flex; flex-direction: column; gap: 14px; }
+
+/* Stats */
+.stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.stat-card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 10px 12px; }
+.stat-label { font-size: 11px; color: var(--muted); margin-bottom: 4px; }
+.stat-value { font-size: 20px; font-weight: 700; line-height: 1; }
+.stat-value.quota { color: var(--warn); }
+.stat-value.verified { color: var(--success); }
+.stat-value.trashed { color: var(--accent); }
+
+/* Step checkbox */
+.step-extra { display: flex; align-items: center; gap: 6px; margin-top: 5px; font-size: 11px; color: var(--muted); cursor: pointer; user-select: none; }
+.step-extra input.custom-chk { margin-top: 0; }
+.step-extra:hover { color: var(--text); }
+
+/* Scan mode toggle — Scan Albums / Scan All Library, mutually exclusive */
+.scan-mode-toggle { display: inline-flex; margin-top: 6px; border-radius: 20px; background: var(--border); padding: 2px; gap: 2px; }
+.scan-mode-option { border: none; background: transparent; color: var(--muted); font-size: 11px; font-weight: 600; padding: 4px 10px; border-radius: 18px; cursor: pointer; font-family: inherit; transition: background .15s, color .15s; }
+.scan-mode-option:hover { color: var(--text); }
+.scan-mode-option.active { background: var(--accent); color: #fff; }
+
+/* Pipeline */
+.section-title { font-size: 12px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; margin-bottom: 10px; }
+.pipeline { display: flex; flex-direction: column; position: relative; padding-left: 2px; }
+.pipeline::before { content: ''; position: absolute; left: 15px; top: 24px; bottom: 24px; width: 2px; background: var(--border); }
+.step { display: flex; align-items: center; gap: 12px; padding: 8px 0; position: relative; }
+.step-num {
+  width: 28px; height: 28px; border-radius: 50%; border: 2px solid var(--border);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 700; color: var(--muted);
+  flex-shrink: 0; background: var(--bg); z-index: 1;
+  transition: border-color .2s, color .2s, background .2s;
+  /* Pin to the top of the row instead of the parent's align-items:center — a step's content
+     height varies (step 1's toggle switch makes it taller than the rest), and centering the
+     circle against that variable height desyncs it from .pipeline::before's fixed top/bottom
+     offsets, letting the connecting line poke out over the number. Top-aligned is stable
+     regardless of how tall any one step's content grows. */
+  align-self: flex-start;
+}
+.step-num.ready { border-color: var(--accent); color: var(--accent); }
+.step-num.running { border-color: var(--warn); color: var(--warn); animation: step-pulse 1.2s infinite; }
+.step-num.done { border-color: var(--success); color: var(--success); background: rgba(74,222,128,.1); }
+.step-num.error { border-color: var(--error); color: var(--error); }
+@keyframes step-pulse { 0%,100% { background: var(--bg); } 50% { background: rgba(251,191,36,.1); } }
+.step-info { flex: 1; min-width: 0; }
+.step-name { font-size: 13px; font-weight: 600; line-height: 1.2; }
+.step-desc { font-size: 11px; color: var(--muted); margin-top: 2px; line-height: 1.4; }
+.step-stat { font-size: 11px; margin-top: 3px; color: var(--success); }
+.step-stat.pending { color: var(--muted2); }
+.step-stat.warn { color: var(--warn); }
+.step-btn { flex-shrink: 0; }
+
+/* Log */
+.log-panel { border-top: 1px solid var(--border); background: var(--log-bg); display: flex; flex-direction: column; overflow: hidden; }
+.log-header { display: flex; align-items: center; gap: 8px; padding: 6px 12px; border-bottom: 1px solid var(--border); flex-shrink: 0; }
+main.log-collapsed .log-panel { border-bottom: none; }
+main.log-collapsed .log-panel #logOutput { display: none; }
+.log-header span { font-size: 12px; font-weight: 600; color: var(--muted); flex: 1; }
+#logOutput { flex: 1; overflow-y: auto; padding: 8px 12px; font-family: 'Cascadia Code', 'Fira Code', Consolas, monospace; font-size: 12px; line-height: 1.6; overflow-wrap: anywhere; white-space: pre-wrap; }
+.log-info { color: var(--log-info); }
+.log-success { color: var(--success); }
+.log-warn { color: var(--warn); }
+.log-error { color: var(--error); }
+.log-op { color: var(--accent); font-weight: 600; }
+
+/* Buttons */
+button { background: var(--border); color: var(--text); border: 1px solid transparent; border-radius: 6px; padding: 6px 14px; font-size: 13px; cursor: pointer; font-family: inherit; transition: background .15s; }
+button:hover:not(:disabled) { background: var(--border-hover); }
+button:disabled { opacity: .4; cursor: not-allowed; }
+button.primary { background: var(--accent); color: #fff; }
+button.primary:hover:not(:disabled) { background: var(--accent-hover); }
+button.danger { background: rgba(248,113,113,.15); color: var(--error); border-color: rgba(248,113,113,.3); }
+button.danger:hover:not(:disabled) { background: rgba(248,113,113,.25); }
+button.small { padding: 4px 12px; font-size: 12px; }
+
+/* Misc */
+.empty { color: var(--muted); font-size: 12px; padding: 20px; text-align: center; line-height: 1.7; }
+.empty b { color: var(--text); }
+.empty small { display: block; margin-top: 6px; font-size: 11px; }
+
+/* Custom scrollbar */
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--border-hover); }
+
+/* Help button */
+.help-btn { display: inline-flex; align-items: center; justify-content: center; width: 16px; height: 16px; border-radius: 50%; background: var(--border); color: var(--muted); font-size: 10px; font-weight: 700; cursor: pointer; border: none; padding: 0; flex-shrink: 0; line-height: 1; }
+.help-btn:hover:not(:disabled) { background: var(--accent); color: #fff; }
+
+/* Info popup */
+.popup-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.65); z-index: 200; display: flex; align-items: center; justify-content: center; }
+.popup-box { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 24px 24px 20px; max-width: 440px; width: 90%; display: flex; flex-direction: column; gap: 14px; }
+.popup-title { font-size: 15px; font-weight: 700; }
+.popup-body { font-size: 13px; color: var(--muted); line-height: 1.8; }
+.popup-body b { color: var(--text); }
+.popup-body code { background: var(--tint-strong); padding: 1px 5px; border-radius: 4px; font-family: Consolas, 'Cascadia Code', monospace; font-size: 12px; }
+.popup-footer { display: flex; justify-content: flex-end; }
+
+/* Manifest viewer */
+.viewer-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.7); z-index: 300; display: flex; align-items: center; justify-content: center; }
+.viewer-box { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px 16px; width: min(720px, 96vw); max-height: 85vh; display: flex; flex-direction: column; gap: 12px; }
+.viewer-header { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+.viewer-header h2 { font-size: 14px; font-weight: 700; flex: 1; }
+.viewer-search { background: var(--bg); border: 1px solid var(--border); border-radius: 6px; padding: 5px 10px; font-size: 12px; color: var(--text); font-family: inherit; width: 180px; outline: none; }
+.viewer-search:focus { border-color: var(--accent); }
+.viewer-list { flex: 1; overflow-y: auto; min-height: 0; }
+.viewer-row { display: flex; align-items: flex-start; gap: 10px; padding: 7px 2px; border-bottom: 1px solid var(--hairline); }
+.viewer-row:last-child { border-bottom: none; }
+.viewer-info { flex: 1; min-width: 0; }
+.viewer-fname { font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.viewer-albums { display: flex; flex-wrap: wrap; gap: 3px; margin-top: 3px; }
+.viewer-tag { background: var(--border); padding: 1px 6px; border-radius: 3px; font-size: 10px; color: var(--muted); white-space: nowrap; }
+.viewer-tag.no-album { color: var(--muted2); font-style: italic; }
+.viewer-meta { display: flex; flex-direction: column; align-items: flex-end; gap: 3px; flex-shrink: 0; }
+.viewer-badge { font-size: 10px; font-weight: 700; padding: 1px 6px; border-radius: 3px; }
+.viewer-badge.oq { background: rgba(251,191,36,.15); color: var(--warn); }
+.viewer-badge.ss { background: var(--border); color: var(--muted2); }
+.viewer-badge.archived { background: rgba(79,142,247,.12); color: var(--accent); }
+.viewer-size { font-size: 10px; color: var(--muted2); }
+.viewer-footer { display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; font-size: 11px; color: var(--muted); }
+</style>
+</head>
+<body>
+
+<header>
+  <h1 id="app-title">Google Photos Quota Reclaim</h1>
+  <div class="header-row">
+    <div id="cdpBadge" class="badge bad" title="Click to learn about CDP" onclick="showPopup('cdp')"><div class="dot"></div><span id="cdpLabel">CDP</span></div>
+    <select id="accountSwitchSelect" class="adb-device-select" style="display:none" onchange="onAccountSwitch()" title="Switch to a different Google account already signed into this Chrome profile — used to verify photos scanned in one account against another account's library">
+      <option value="/u/0/">/u/0/</option>
+      <option value="/u/1/">/u/1/</option>
+      <option value="/u/2/">/u/2/</option>
+      <option value="/u/3/">/u/3/</option>
+      <option value="/u/4/">/u/4/</option>
+    </select>
+    <div id="adbBadge" class="badge bad" title="Click to learn about ADB" onclick="showPopup('adb')"><div class="dot"></div> ADB</div>
+    <select id="adbDeviceSelect" class="adb-device-select" style="display:none" onchange="onAdbDeviceChange()" title="Select ADB device"></select>
+  </div>
+  <div class="header-row">
+    <button class="small primary" id="launchChromeBtn" onclick="launchChrome()">Launch Chrome</button>
+    <button class="help-btn" onclick="showPopup('chrome')" title="?">?</button>
+    <button class="small danger" id="deleteProfileBtn" onclick="deleteProfile()" style="display:none">Delete Profile</button>
+    <button class="small danger" id="btn-reset" onclick="resetManifest()">Reset</button>
+    <div class="header-divider"></div>
+    <div class="lang-dropdown" id="themeDropdown">
+      <button class="lang-dropdown-btn" id="themeDropdownBtn" onclick="toggleThemeDropdown()" title="Theme">
+        <span id="themeDropdownLabel">Dark</span>
+        <span class="lang-dropdown-chevron">▾</span>
+      </button>
+      <div class="lang-dropdown-menu theme-menu" id="themeDropdownMenu">
+        <div class="theme-mode-row">
+          <button class="theme-mode-btn" id="themeModeDark" data-mode="dark" onclick="setThemeMode('dark')">Dark</button>
+          <button class="theme-mode-btn" id="themeModeLight" data-mode="light" onclick="setThemeMode('light')">Light</button>
+        </div>
+        <div id="themeShadeSection">
+          <span class="theme-menu-label" id="themeShadeLabel">Background</span>
+          <div class="theme-shade-row" id="themeShadeRowDark" style="margin-top:4px">
+            <button class="theme-shade-swatch" data-shade="amoled" style="background:#000000" onclick="setShade('amoled')" title="AMOLED"></button>
+            <button class="theme-shade-swatch" data-shade="charcoal" style="background:#131314" onclick="setShade('charcoal')" title="Charcoal"></button>
+            <button class="theme-shade-swatch" data-shade="default" style="background:#1a1d27" onclick="setShade('default')" title="Default"></button>
+            <button class="theme-shade-swatch" data-shade="slate" style="background:#24262e" onclick="setShade('slate')" title="Slate"></button>
+            <button class="theme-shade-swatch" data-shade="grey" style="background:#2e2f33" onclick="setShade('grey')" title="Grey"></button>
+          </div>
+          <div class="theme-shade-row" id="themeShadeRowLight" style="margin-top:4px">
+            <button class="theme-shade-swatch" data-shade-light="white" style="background:#ffffff" onclick="setShadeLight('white')" title="White"></button>
+            <button class="theme-shade-swatch" data-shade-light="paper" style="background:#faf9f7" onclick="setShadeLight('paper')" title="Paper"></button>
+            <button class="theme-shade-swatch" data-shade-light="default" style="background:#f3f4f6" onclick="setShadeLight('default')" title="Default"></button>
+            <button class="theme-shade-swatch" data-shade-light="mist" style="background:#eceef1" onclick="setShadeLight('mist')" title="Mist"></button>
+            <button class="theme-shade-swatch" data-shade-light="grey" style="background:#e5e6e9" onclick="setShadeLight('grey')" title="Grey"></button>
+          </div>
+        </div>
+        <span class="theme-menu-label" id="themeAccentLabel">Accent</span>
+        <div class="theme-accent-row" id="themeAccentRow">
+          <button class="theme-swatch" data-accent="blue" style="background:#3b82f6" onclick="setAccent('blue')" title="Blue"></button>
+          <button class="theme-swatch" data-accent="indigo" style="background:#6366f1" onclick="setAccent('indigo')" title="Indigo"></button>
+          <button class="theme-swatch" data-accent="violet" style="background:#8b5cf6" onclick="setAccent('violet')" title="Violet"></button>
+          <button class="theme-swatch" data-accent="purple" style="background:#a855f7" onclick="setAccent('purple')" title="Purple"></button>
+          <button class="theme-swatch" data-accent="fuchsia" style="background:#d946ef" onclick="setAccent('fuchsia')" title="Fuchsia"></button>
+          <button class="theme-swatch" data-accent="pink" style="background:#ec4899" onclick="setAccent('pink')" title="Pink"></button>
+          <button class="theme-swatch" data-accent="rose" style="background:#f43f5e" onclick="setAccent('rose')" title="Rose"></button>
+          <button class="theme-swatch" data-accent="red" style="background:#ef4444" onclick="setAccent('red')" title="Red"></button>
+          <button class="theme-swatch" data-accent="orange" style="background:#f97316" onclick="setAccent('orange')" title="Orange"></button>
+          <button class="theme-swatch" data-accent="amber" style="background:#f59e0b" onclick="setAccent('amber')" title="Amber"></button>
+          <button class="theme-swatch" data-accent="green" style="background:#22c55e" onclick="setAccent('green')" title="Green"></button>
+          <button class="theme-swatch" data-accent="emerald" style="background:#10b981" onclick="setAccent('emerald')" title="Emerald"></button>
+          <button class="theme-swatch" data-accent="teal" style="background:#14b8a6" onclick="setAccent('teal')" title="Teal"></button>
+          <button class="theme-swatch" data-accent="cyan" style="background:#06b6d4" onclick="setAccent('cyan')" title="Cyan"></button>
+        </div>
+      </div>
+    </div>
+    <div class="lang-dropdown" id="langDropdown">
+      <button class="lang-dropdown-btn" id="langDropdownBtn" onclick="toggleLangDropdown()" title="Language">
+        <span id="langDropdownLabel">English</span>
+        <span class="lang-dropdown-chevron">▾</span>
+      </button>
+      <div class="lang-dropdown-menu" id="langDropdownMenu">
+        <div class="lang-option" data-lang="en" onclick="setLang('en')"><span class="lang-option-check">✓</span>English</div>
+        <div class="lang-option" data-lang="ru" onclick="setLang('ru')"><span class="lang-option-check"></span>Русский</div>
+        <div class="lang-option" data-lang="zh_TW" onclick="setLang('zh_TW')"><span class="lang-option-check"></span>繁體中文</div>
+        <div class="lang-option" data-lang="zh_CN" onclick="setLang('zh_CN')"><span class="lang-option-check"></span>简体中文</div>
+        <div class="lang-option" data-lang="ja_JP" onclick="setLang('ja_JP')"><span class="lang-option-check"></span>日本語</div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<main>
+  <!-- Sidebar: Albums -->
+  <aside>
+    <div class="sidebar-header">
+      <span id="sidebar-albums-title">Albums</span>
+      <button class="help-btn" onclick="showPopup('albums')" title="?">?</button>
+      <button class="small" id="loadAlbumsBtn" onclick="loadAlbums()">Load</button>
+      <button class="collapse-btn" id="btn-toggle-albums" onclick="toggleAlbumsSidebar()" title="Collapse">◂</button>
+    </div>
+    <div id="albumList"><div class="empty" id="albumListEmpty">Albums are loaded from <b>Google Photos in Chrome</b> — not from the Pixel.<br><br>Connect Chrome (green CDP badge) then click Load.</div></div>
+    <div class="sidebar-footer">
+      <span id="selCount"></span>
+      <button class="small" id="btn-select-all" onclick="selectAll()">All</button>
+      <button class="small" id="btn-select-none" onclick="selectNone()">None</button>
+    </div>
+  </aside>
+
+  <!-- Content -->
+  <div class="content">
+    <!-- Stats -->
+    <div>
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+        <div class="section-title" id="stat-section-title" style="margin-bottom:0">Manifest Stats</div>
+        <button class="small" id="btn-refresh-status" onclick="refreshStatus()" title="Refresh status" style="padding:2px 8px;font-size:13px;line-height:1">↺</button>
+      </div>
+      <div class="stats-grid">
+        <div class="stat-card"><div class="stat-label" id="stat-label-total">Total items</div><div class="stat-value" id="sTotal">—</div></div>
+        <div class="stat-card"><div class="stat-label" id="stat-label-quota">Quota (takes space)</div><div class="stat-value quota" id="sQuota">—</div></div>
+        <div class="stat-card"><div class="stat-label" id="stat-label-downloaded">Downloaded</div><div class="stat-value" id="sDownloaded">—</div></div>
+        <div class="stat-card"><div class="stat-label" id="stat-label-enriched">Enriched (dedupKey)</div><div class="stat-value" id="sEnriched">—</div></div>
+        <div class="stat-card"><div class="stat-label" id="stat-label-albums-saved">Albums saved</div><div class="stat-value" id="sAlbumsSaved">—</div></div>
+        <div class="stat-card"><div class="stat-label" id="stat-label-trashed">Trashed + pushed</div><div class="stat-value trashed" id="sTrashed">—</div></div>
+        <div class="stat-card"><div class="stat-label" id="stat-label-verified">Verified</div><div class="stat-value verified" id="sVerified">—</div></div>
+        <div class="stat-card"><div class="stat-label" id="stat-label-restored">Albums restored</div><div class="stat-value" id="sRestored">—</div></div>
+      </div>
+      <div style="margin-top:6px;display:flex;gap:8px;align-items:center">
+        <span id="workDirLabel" style="font-size:11px;color:var(--muted)"></span>
+        <span id="downloadsLabel" style="font-size:11px;color:var(--muted)"></span>
+      </div>
+    </div>
+
+    <!-- Pipeline -->
+    <div>
+      <div class="section-title" id="pipeline-section-title">Pipeline</div>
+      <div class="pipeline">
+
+        <div class="step">
+          <div class="step-num" id="snum-1">1</div>
+          <div class="step-info">
+            <div class="step-name" id="step1-name">Scan &amp; Prepare</div>
+            <div class="step-desc" id="step1-desc">Select albums in the sidebar, or scan the full library · get dedupKeys · save album memberships · detect archived photos</div>
+            <div class="step-stat pending" id="sstat-1">No albums selected</div>
+            <div class="scan-mode-toggle" id="scanModeToggle" role="group" aria-label="Scan mode">
+              <button type="button" class="scan-mode-option active" data-mode="albums" id="scanModeAlbumsBtn" onclick="setScanMode('albums')">Scan Albums</button>
+              <button type="button" class="scan-mode-option" data-mode="all" id="scanModeAllBtn" onclick="setScanMode('all')">Scan All Library</button>
+            </div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:4px;flex-shrink:0">
+            <button class="small primary step-btn" id="btn-scan-full" onclick="runScanFull()" disabled>Scan</button>
+            <button class="small step-btn" id="btn-view-scanned" onclick="showScannedItems()" disabled>View</button>
+          </div>
+        </div>
+
+        <div class="step">
+          <div class="step-num" id="snum-2">2</div>
+          <div class="step-info">
+            <div class="step-name" id="step2-name">Match Downloads</div>
+            <div class="step-desc" id="step2-desc">Link files in ./downloads/ to manifest items</div>
+            <div class="step-desc" id="step2-note" style="margin-top:3px"></div>
+            <div class="step-stat pending" id="sstat-2">Scan first</div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:4px;flex-shrink:0">
+            <button class="small primary step-btn" id="btn-match" onclick="matchAlbums()" disabled>Match</button>
+            <button class="small step-btn" id="btn-view-unmatched" onclick="showUnmatchedItems()" disabled>Unmatched</button>
+            <button class="small step-btn" id="btn-download-direct" onclick="runDownload()" disabled>Download</button>
+          </div>
+        </div>
+
+        <div class="step">
+          <div class="step-num" id="snum-3">3</div>
+          <div class="step-info">
+            <div class="step-name" id="step3-name">Trash + Reupload</div>
+            <div class="step-desc" id="step3-desc">Delete from cloud · push to Pixel · <span style="color:var(--error)">irreversible</span></div>
+            <div class="step-stat pending" id="sstat-3">Match downloads first</div>
+            <label class="step-extra">
+              <input type="checkbox" class="custom-chk" id="chk-empty-trash">
+              <span id="chk-empty-trash-label">Permanently delete from trash after trashing (prevents auto-trash on re-upload)</span>
+            </label>
+            <label class="step-extra">
+              <span id="lbl-concurrency">Parallel streams:</span>
+              <input type="number" id="inp-concurrency" min="1" max="10" value="3" style="width:48px;margin-left:6px;padding:2px 4px;background:var(--surface2);border:1px solid var(--border);border-radius:4px;color:inherit;font-size:12px">
+            </label>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:6px;align-items:flex-end;flex-shrink:0">
+            <button class="small danger step-btn" id="btn-trash-reupload" onclick="runTrashReupload()" disabled>Trash &amp; Push</button>
+            <button class="small step-btn" id="btn-push" onclick="runPush()" disabled title="Push downloaded files to the device only — cloud copies are left untouched, nothing is trashed">Push</button>
+            <button class="small step-btn" id="btn-repush" onclick="runRepush()" disabled style="display:none">Repush to Phone</button>
+            <button class="small step-btn" id="btn-stop-trash" onclick="stopTrashReupload()" style="display:none;background:var(--surface2);color:var(--error);border-color:var(--error)">Stop</button>
+          </div>
+        </div>
+
+        <div class="step">
+          <div class="step-num" id="snum-4">4</div>
+          <div class="step-info">
+            <div class="step-name" id="step4-name">Verify</div>
+            <div class="step-desc" id="step4-desc">Wait for Complete Pixel backup, then confirm quota freed</div>
+            <div class="step-stat pending" id="sstat-4">Trash + reupload first</div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:4px;flex-shrink:0">
+            <button class="small primary step-btn" id="btn-verify" onclick="runOp('verify')" disabled>Verify</button>
+            <button class="small step-btn" id="btn-view-unverified" onclick="showUnverifiedItems()" disabled>View</button>
+            <button class="small danger step-btn" id="btn-verify-reset" onclick="resetVerify()" disabled title="Clear verified state so Verify can be re-run, e.g. against a different account">Verify Reset</button>
+          </div>
+        </div>
+
+        <div class="step">
+          <div class="step-num" id="snum-5">5</div>
+          <div class="step-info">
+            <div class="step-name" id="step5-name">Restore Albums &amp; Archives</div>
+            <div class="step-desc" id="step5-desc">Put photos back into their original albums · re-archive photos that were archived</div>
+            <div class="step-stat pending" id="sstat-5">Verify first</div>
+          </div>
+          <button class="small step-btn" id="btn-restore-albums" onclick="runOp('restore-albums')" disabled>Restore</button>
+        </div>
+
+        <div class="step">
+          <div class="step-num" id="snum-6">6</div>
+          <div class="step-info">
+            <div class="step-name" id="step6-name">Cleanup Pixel</div>
+            <div class="step-desc" id="step6-desc">Remove pushed files from /sdcard/DCIM/Camera/</div>
+            <div class="step-stat pending" id="sstat-6">Trash + reupload first</div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:4px;flex-shrink:0">
+            <button class="small danger step-btn" id="btn-cleanup-pixel" onclick="runOp('cleanup-pixel')" disabled>Cleanup</button>
+            <button class="small danger step-btn" id="btn-reset-all" onclick="resetAll()" title="Delete files in downloads/ and reset the manifest">Reset All</button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- Log -->
+  <div class="log-panel">
+    <div class="log-header">
+      <button class="collapse-btn" id="btn-toggle-log" onclick="toggleLogPanel()" title="Collapse">▾</button>
+      <span id="log-title">Log</span>
+      <button class="small" id="btn-save-log" onclick="saveLog()">Save</button>
+      <button class="small" id="btn-clear-log" onclick="clearLog()">Clear</button>
+    </div>
+    <div id="logOutput"></div>
+  </div>
+</main>
+
+<!-- Manifest viewer -->
+<div id="viewer-overlay" class="viewer-overlay" style="display:none" onclick="closeViewer()">
+  <div class="viewer-box" onclick="event.stopPropagation()">
+    <div class="viewer-header">
+      <h2 id="viewer-title"></h2>
+      <input class="viewer-search" id="viewer-search" type="text" placeholder="Search...">
+      <button class="small" onclick="closeViewer()">✕</button>
+    </div>
+    <div class="viewer-list" id="viewer-list"></div>
+    <div class="viewer-footer">
+      <div style="display:flex;align-items:center;gap:10px">
+        <span id="viewer-count"></span>
+        <button class="small primary" id="viewer-download-btn" onclick="downloadViewerItems()" style="display:none">Download</button>
+      </div>
+      <button class="small primary" onclick="closeViewer()" id="viewer-close-btn">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- Info popup -->
+<div id="popup-overlay" class="popup-overlay" style="display:none">
+  <div class="popup-box" onclick="event.stopPropagation()">
+    <div class="popup-title" id="popup-title"></div>
+    <div class="popup-body" id="popup-body"></div>
+    <div class="popup-footer" id="popup-footer">
+      <button class="small primary" onclick="closePopup()">Got it</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const API = '';
+let sse = null;
+let albums = [];
+let currentOp = null;
+let manifestStats = {};
+// 'albums' | 'all' — drives the merged Scan & Prepare step's toggle (Scan Albums / Scan All
+// Library). Not persisted — each session starts on the safer default (scoped to a selection).
+let scanMode = 'albums';
+let modalDismissable = true;
+let awaitingPixelRestore = false;
+
+// ── i18n ─────────────────────────────────────────────────────────────────────
+
+let lang = localStorage.getItem('lang') || 'en';
+let chromeProfileSizeMb = null;
+let adbBinaryWarnShown = false;
+let adbUnauthorizedWarnShown = false;
+let selectedAdbDevice = (() => { try { return localStorage.getItem('adbDevice') || null; } catch { return null; } })();
+let themeMode = (() => { try { return localStorage.getItem('themeMode') || 'dark'; } catch { return 'dark'; } })();
+let themeAccent = (() => { try { return localStorage.getItem('themeAccent') || 'blue'; } catch { return 'blue'; } })();
+let themeShade = (() => { try { return localStorage.getItem('themeShade') || 'amoled'; } catch { return 'amoled'; } })();
+let themeShadeLight = (() => { try { return localStorage.getItem('themeShadeLight') || 'default'; } catch { return 'default'; } })();
+
+const LANGS = {
+  en: {
+    appTitle: 'Google Photos Quota Reclaim',
+    launchChrome: 'Launch Chrome',
+    deleteProfile: 'Delete Profile',
+    reset: 'Reset',
+    resetTooltip: 'Delete manifest.json and reset all step states. Downloaded files will NOT be deleted.',
+
+    albums: 'Albums',
+    albumsEmpty: 'Albums are loaded from <b>Google Photos in Chrome</b> — not from the Pixel.<br><br>Connect Chrome (green CDP badge) then click Load.',
+    albumsNone: 'No albums found in this Google account.<br><small>Albums are fetched from Google Photos in Chrome.</small>',
+    load: 'Load',
+    reload: 'Reload',
+    all: 'Select all',
+    none: 'Clean',
+    selectedCount: (n) => `${n} selected`,
+    workDirLabel: (dir) => `Work: ${dir}`,
+    downloadsLabel: (n) => `Downloads: ${n} files`,
+
+    manifestStats: 'Manifest Stats',
+    statTotal: 'Total items',
+    statQuota: 'Quota (takes space)',
+    statDownloaded: 'Downloaded',
+    statEnriched: 'Enriched (dedupKey)',
+    statAlbumsSaved: 'Albums saved',
+    statTrashed: 'Trashed + pushed',
+    statVerified: 'Verified',
+    statRestored: 'Albums restored',
+
+    pipeline: 'Pipeline',
+
+    step1Name: 'Scan & Prepare',
+    step1Desc: 'Select albums in the sidebar, or switch to "Scan All Library" · find quota items · get dedupKeys · save album memberships · detect archived photos',
+    step1Pending: 'No albums selected',
+    step1Ready: (n) => `${n} album${n > 1 ? 's' : ''} selected`,
+    step1ScanAll: 'Full library scan',
+    scanQuotaFound: (n) => `${n} quota item${n > 1 ? 's' : ''} found`,
+    scanReadyToScan: 'ready to scan',
+    scanModeAlbums: 'Scan Albums',
+    scanModeAll: 'Scan All Library',
+    btnScan: 'Scan',
+    btnViewScanned: 'View',
+
+    step2Name: 'Match Downloads',
+    step2Desc: 'Link files in ./downloads/ to manifest items',
+    step2Note: 'Place photo files in the <b>downloads/</b> folder and click Match. To preserve metadata (dates, GPS), process with <a href="https://github.com/Xentraxx/GooglePhotosTakeoutHelper_Neo" target="_blank" style="color:var(--accent)">GooglePhotosTakeoutHelper Neo</a> first — or skip Takeout entirely and click Download to fetch quota items straight from Google Photos.',
+    step2Pending1: 'Scan first',
+    step2Pending2: 'Place files in ./downloads/, then match — or click Download',
+    step2Done: (n, total) => `${n}/${total} files matched`,
+    btnMatch: 'Match',
+    btnViewUnmatched: 'View',
+    btnDownloadDirect: 'Download',
+
+    viewerScannedTitle: 'Scanned quota items',
+    viewerUnmatchedTitle: 'Unmatched items (no local file)',
+    viewerSearch: 'Search...',
+    viewerOriginalQuality: 'Original',
+    viewerStorageSaver: 'Storage Saver',
+    viewerNoAlbum: 'No album',
+    viewerArchived: 'Archived',
+    viewerClose: 'Close',
+    viewerCountAll: (n) => `${n} items`,
+    viewerCountFiltered: (n, total) => `${n} of ${total}`,
+    viewerDownloadThese: (n) => n > 0 ? `Download ${n} file${n === 1 ? '' : 's'}` : 'Nothing to download',
+
+    step3Name: 'Trash + Reupload',
+    step3Desc: 'Delete from cloud · push to Pixel · ',
+    step3Irreversible: 'irreversible',
+    step3Pending1: 'Match downloads first',
+    step3Pending2: (n) => `${n} items ready`,
+    step3Done: (n) => `${n} items pushed to Pixel`,
+    chkEmptyTrash: 'Permanently delete from trash after trashing (prevents auto-trash on re-upload)',
+    btnTrash: 'Trash & Push',
+    btnPush: 'Push',
+
+    step4Name: 'Verify',
+    step4Desc: 'Wait for Complete Pixel backup, then confirm quota freed',
+    step4Pending1: 'Trash + reupload first',
+    step4Pending2: 'Wait for Pixel backup, then verify',
+    step4Done: (n, total) => `${n}/${total} verified`,
+    btnVerify: 'Verify',
+    btnViewUnverified: 'View',
+    btnVerifyReset: 'Verify Reset',
+    viewerUnverifiedTitle: 'Not yet verified (awaiting backup)',
+
+    step5Name: 'Restore Albums & Archives',
+    step5Desc: 'Put photos back into their original albums · re-archive photos that were archived',
+    step5Pending1: 'Verify first',
+    step5Pending2: (n) => `${n} items ready`,
+    step5Done: (n) => `${n} items restored`,
+    btnRestore: 'Restore',
+
+    step6Name: 'Cleanup Pixel',
+    step6Desc: 'Remove pushed files from /sdcard/DCIM/Camera/',
+    step6Pending: 'Trash + reupload first',
+    step6Ready: (n) => `${n} files on Pixel to clean`,
+    btnCleanup: 'Cleanup',
+    btnResetAll: 'Reset All',
+    btnResetAllTitle: 'Delete the Chrome profile, reset the manifest, and clear downloads/',
+    modalResetAllTitle: '⚠️ Full reset — delete Chrome profile, manifest, and downloads?',
+    modalResetAllBody: `This does three things:<br><br>
+      <b>1.</b> Deletes the Chrome automation profile (you'll need to sign in again)<br>
+      <b>2.</b> Resets <b>manifest.json</b><br>
+      <b>3.</b> Deletes everything inside <b>downloads/</b>, including README.md<br><br>
+      A full reset back to a blank slate. If a downloads/ subfolder is a symlink to another location, only the link itself is removed — the files it points to are untouched.<br><br>
+      This cannot be undone.`,
+    modalResetAllCancel: 'Cancel',
+    modalResetAllConfirm: 'Delete & reset',
+
+
+    logTitle: 'Log',
+    logClear: 'Clear',
+    logSave: 'Save',
+    logSaved: 'Log saved.',
+    collapseTitle: 'Collapse',
+    expandTitle: 'Expand',
+    themeDark: 'Dark',
+    themeLight: 'Light',
+    themeBackground: 'Background',
+    themeAccent: 'Accent',
+
+    modalTrashTitle: '⚠️ Action required on Pixel before starting',
+    modalTrashBody: (warning) => `To prevent Google Photos from marking the uploaded files as "already uploaded", first:<br><br>
+      <b>1.</b> Open <b>Google Photos</b> on the Pixel<br>
+      <b>2.</b> Tap the avatar (top right corner)<br>
+      <b>3.</b> Select <b>"Use Photos without an account"</b><br><br>
+      Then click <b>Ready, start</b>.${warning}`,
+    modalTrashEmptyWarning: `<br><div style="margin-top:10px;padding:8px 10px;background:rgba(248,113,113,.1);border:1px solid rgba(248,113,113,.3);border-radius:6px;font-size:12px;color:var(--error)">⚠️ "Permanently delete from trash" is enabled — files will be permanently removed from trash immediately after being moved there.</div>`,
+    modalTrashCancel: 'Cancel',
+    modalTrashConfirm: 'Ready, start',
+
+    modalAfterTrashTitle: '✓ Files pushed to Pixel — restore account',
+    modalAfterTrashBody: `Files have been pushed to the Pixel. Now restore the Google account so Photos can start the backup:<br><br>
+      <b>1.</b> Open <b>Google Photos</b> on the Pixel<br>
+      <b>2.</b> Tap <b>"Sign in"</b><br>
+      <b>3.</b> Sign in with your <b>Google account</b><br><br>
+      <div style="padding:8px 10px;background:rgba(251,191,36,.1);border:1px solid rgba(251,191,36,.3);border-radius:6px;font-size:12px;color:var(--warn)">⚠️ If an account is already selected — Google may immediately ask about enabling sync. Switch to the same account that was chosen in the previous step and agree to sync.</div><br>
+      Google Photos will see the new files and upload them to the cloud for free.<br><br>
+      Wait for the backup to complete, then click <b>Verify</b> (step 5).`,
+    modalAfterTrashClose: 'Got it, close',
+
+    modalAfterCleanupTitle: '✓ Folder cleaned',
+    modalAfterCleanupBody: `Files were deleted via ADB, but <b>Google Files</b> and <b>Google Photos</b> on the Pixel may still show them in the list — this is normal.<br><br>
+      Android uses a media index that doesn't update instantly. The files are physically gone, so trying to delete them from the app will give an error <i>"failed to delete"</i>.<br><br>
+      <b>What to do:</b> simply reboot the Pixel — after reboot the media index will rescan and the "ghosts" will disappear.`,
+    modalAfterCleanupClose: 'Got it',
+
+    popupCdpTitle: 'CDP — Chrome DevTools Protocol',
+    popupCdpBody: `<b>CDP</b> is a debugging API built into Chrome. This app uses it to communicate with the open Google Photos tab — reading authentication tokens, making API calls on your behalf, and navigating between accounts.<br><br>
+<b>Green badge:</b> Chrome is running with <code>--remote-debugging-port=9222</code> and has a Google Photos tab open.<br><br>
+All library operations (Scan, Enrich, Trash, Verify) require an active CDP connection.`,
+
+    adbNotFound: `ADB binary not found in adb/ folder. Download Platform Tools from https://developer.android.com/tools/releases/platform-tools and place adb.exe in the adb/ folder.`,
+    adbDeviceNotReady: (states) => `ADB: device(s) detected but not ready to select yet: ${states}. Check for a USB debugging authorization prompt on the phone.`,
+
+    popupAdbTitle: 'ADB — Android Debug Bridge',
+    popupAdbBody: `<b>ADB</b> is a tool for communicating with Android devices over USB. This app uses it to push photos to your Pixel 1's camera folder.<br><br>
+Google Photos on the Pixel then backs them up — and Pixel 1 has a permanent exemption that makes all uploads cost <b>zero quota</b>.<br><br>
+<b>Setup:</b> Download <a href="https://developer.android.com/tools/releases/platform-tools" target="_blank" style="color:var(--accent)">Platform Tools</a> and place <code>adb.exe</code> in the <code>adb/</code> folder next to this project.<br><br>
+<b>Green badge:</b> Pixel 1 is connected via USB, USB debugging is authorized in Developer Options, and ADB can see the device.<br><br>
+ADB is only needed for the <b>Trash + Reupload</b> and <b>Cleanup Pixel</b> steps.`,
+
+    popupChromeTitle: 'Why launch Chrome?',
+    popupChromeBody: `All Google Photos API calls go through the browser — not directly from this app. This is because Google's API requires your <b>session cookies</b>, which only exist inside Chrome.<br><br>
+Clicking <b>Launch Chrome</b> opens a dedicated Chrome window with:<br>
+• Remote debugging enabled (port 9222)<br>
+• An isolated temporary profile<br><br>
+Sign into Google Photos in that window. The CDP badge turns green once connected.<br><br>
+If Chrome is already running with <code>--remote-debugging-port=9222</code>, you can skip this.`,
+
+    popupAlbumsTitle: 'Where do albums come from?',
+    popupAlbumsBody: `Albums are fetched from <b>Google Photos via Chrome</b> — not from your Pixel or local files.<br><br>
+When you click Load, the app asks Chrome to fetch your album list using the same API the Google Photos website uses internally.<br><br>
+<b>Requirements:</b><br>
+• Chrome connected (green CDP badge)<br>
+• Google Photos tab open and signed in<br><br>
+<b>Note:</b> The Pixel is not involved here — it is only used in the Trash + Reupload step to re-upload files with zero quota cost.`,
+
+    albumsLoaded: (n) => `Loaded ${n} albums.`,
+    albumsError: (e) => `Albums error: ${e}`,
+    albumsFailed: (e) => `Failed to load albums: ${e}`,
+    chromeLaunched: (dir) => `Chrome launched. Profile: ${dir}`,
+    chromeFailed: (e) => `Chrome launch failed: ${e}`,
+    profileDeleted: (p) => `Profile deleted: ${p}`,
+    profileDeleteFailed: (e) => `Delete failed: ${e}`,
+    manifestReset: 'Manifest reset.',
+    confirmReset: 'Delete manifest.json and reset all step states?\n\nDownloaded files will NOT be deleted.',
+    confirmResetVerify: 'Clear verified state on all items so Verify can be re-run (e.g. against a different account)?',
+    confirmDeleteProfile: (label, dir) => `Delete Chrome profile${label}?\n${dir}\n\nMake sure Chrome is closed.`,
+    gotIt: 'Got it',
+    lblConcurrency: 'Parallel streams:',
+    btnStop: 'Stop',
+    btnStopping: 'Stopping…',
+    viewerEmpty: 'No items',
+    viewerNoMatches: 'No matches',
+    refreshTitle: 'Refresh status',
+    badgeCdpTitle: 'Click to learn about CDP',
+    badgeAdbTitle: 'Click to learn about ADB',
+  },
+
+  ru: {
+    appTitle: 'Google Photos Quota Reclaim',
+    launchChrome: 'Запустить Chrome',
+    deleteProfile: 'Удалить профиль',
+    reset: 'Сброс',
+    resetTooltip: 'Удалить manifest.json и сбросить все шаги. Скачанные файлы удалены не будут.',
+
+    albums: 'Альбомы',
+    albumsEmpty: 'Альбомы загружаются из <b>Google Photos в Chrome</b> — не с Pixel.<br><br>Подключи Chrome (зелёный CDP) и нажми «Загрузить».',
+    albumsNone: 'Альбомы не найдены в этом Google-аккаунте.<br><small>Альбомы загружаются из Google Photos в Chrome.</small>',
+    load: 'Загрузить',
+    reload: 'Обновить',
+    all: 'Выбрать все',
+    none: 'Очистить',
+    selectedCount: (n) => `Выбрано: ${n}`,
+    workDirLabel: (dir) => `Рабочая папка: ${dir}`,
+    downloadsLabel: (n) => `Загрузки: ${n} файлов`,
+
+    manifestStats: 'Статистика',
+    statTotal: 'Всего',
+    statQuota: 'Занимают квоту',
+    statDownloaded: 'Скачано',
+    statEnriched: 'Enriched (dedupKey)',
+    statAlbumsSaved: 'Альбомы сохранены',
+    statTrashed: 'Удалено + залито',
+    statVerified: 'Проверено',
+    statRestored: 'Альбомы восстановлены',
+
+    pipeline: 'Шаги',
+
+    step1Name: 'Сканировать',
+    step1Desc: 'Выбери альбомы в панели слева или переключись на «Сканировать всю библиотеку» · получить dedupKey · сохранить альбомы · определить архивные фото',
+    step1Pending: 'Альбомы не выбраны',
+    step1Ready: (n) => `Выбрано альбомов: ${n}`,
+    step1ScanAll: 'Сканирование всей библиотеки',
+    scanQuotaFound: (n) => `найдено квотных: ${n}`,
+    scanReadyToScan: 'готово к сканированию',
+    scanModeAlbums: 'Сканировать альбомы',
+    scanModeAll: 'Сканировать всю библиотеку',
+    btnScan: 'Сканировать',
+    btnViewScanned: 'Смотреть',
+
+    step2Name: 'Привязать загрузки',
+    step2Desc: 'Связать файлы из ./downloads/ с элементами манифеста',
+    step2Note: 'Помести файлы фото в папку <b>downloads/</b> и нажми «Привязать». Для сохранения метаданных (даты, GPS) используй <a href="https://github.com/Xentraxx/GooglePhotosTakeoutHelper_Neo" target="_blank" style="color:var(--accent)">GooglePhotosTakeoutHelper Neo</a> — или пропусти Takeout и нажми «Скачать», чтобы забрать элементы прямо из Google Photos.',
+    step2Pending1: 'Сначала сканируй',
+    step2Pending2: 'Положи файлы в ./downloads/, затем привяжи — или нажми «Скачать»',
+    step2Done: (n, total) => `Привязано: ${n}/${total}`,
+    btnMatch: 'Привязать',
+    btnViewUnmatched: 'Смотреть',
+    btnDownloadDirect: 'Скачать',
+
+    viewerScannedTitle: 'Отсканированные квотные фото',
+    viewerUnmatchedTitle: 'Не сматченные (нет локального файла)',
+    viewerSearch: 'Поиск...',
+    viewerOriginalQuality: 'Оригинал',
+    viewerStorageSaver: 'Эконом',
+    viewerNoAlbum: 'Без альбома',
+    viewerArchived: 'Архив',
+    viewerClose: 'Закрыть',
+    viewerCountAll: (n) => `${n} элементов`,
+    viewerCountFiltered: (n, total) => `${n} из ${total}`,
+    viewerDownloadThese: (n) => n > 0 ? `Скачать (${n})` : 'Нечего скачивать',
+
+    step3Name: 'Удалить + залить',
+    step3Desc: 'Удалить из облака · загрузить на Pixel · ',
+    step3Irreversible: 'необратимо',
+    step3Pending1: 'Сначала привяжи загрузки',
+    step3Pending2: (n) => `Готово: ${n} элементов`,
+    step3Done: (n) => `Залито на Pixel: ${n}`,
+    chkEmptyTrash: 'Постоянно удалять из корзины (предотвращает авто-удаление при перезаливке)',
+    btnTrash: 'Удалить и залить',
+    btnPush: 'Отправить',
+
+    step4Name: 'Проверить',
+    step4Desc: 'Дождись завершения бэкапа Pixel, затем подтверди освобождение квоты',
+    step4Pending1: 'Сначала удали + залей',
+    step4Pending2: 'Жди бэкап Pixel, потом проверяй',
+    step4Done: (n, total) => `Проверено: ${n}/${total}`,
+    btnVerify: 'Проверить',
+    btnViewUnverified: 'Смотреть',
+    btnVerifyReset: 'Сбросить проверку',
+    viewerUnverifiedTitle: 'Не проверены (ожидают бэкап)',
+
+    step5Name: 'Восстановить альбомы и архив',
+    step5Desc: 'Вернуть фото в исходные альбомы · заархивировать фото, которые были в архиве',
+    step5Pending1: 'Сначала проверь',
+    step5Pending2: (n) => `Готово: ${n} элементов`,
+    step5Done: (n) => `Восстановлено: ${n}`,
+    btnRestore: 'Восстановить',
+
+    step6Name: 'Очистить Pixel',
+    step6Desc: 'Удалить залитые файлы из /sdcard/DCIM/Camera/',
+    step6Pending: 'Сначала удали + залей',
+    step6Ready: (n) => `${n} файлов на Pixel для очистки`,
+    btnCleanup: 'Очистить',
+    btnResetAll: 'Сбросить всё',
+    btnResetAllTitle: 'Удалить профиль Chrome, сбросить манифест и очистить downloads/',
+    modalResetAllTitle: '⚠️ Полный сброс — удалить профиль Chrome, манифест и downloads?',
+    modalResetAllBody: `Это сделает три вещи:<br><br>
+      <b>1.</b> Удалит профиль Chrome для автоматизации (потребуется войти снова)<br>
+      <b>2.</b> Сбросит <b>manifest.json</b><br>
+      <b>3.</b> Удалит всё содержимое <b>downloads/</b>, включая README.md<br><br>
+      Полный сброс к чистому состоянию. Если подпапка downloads/ — это символическая ссылка на другое расположение, удаляется только сама ссылка — файлы, на которые она указывает, не трогаются.<br><br>
+      Это действие необратимо.`,
+    modalResetAllCancel: 'Отмена',
+    modalResetAllConfirm: 'Удалить и сбросить',
+
+
+    logTitle: 'Лог',
+    logClear: 'Очистить',
+    logSave: 'Сохранить',
+    logSaved: 'Лог сохранён.',
+    collapseTitle: 'Свернуть',
+    expandTitle: 'Развернуть',
+    themeDark: 'Тёмная',
+    themeLight: 'Светлая',
+    themeBackground: 'Фон',
+    themeAccent: 'Акцент',
+
+    modalTrashTitle: '⚠️ Перед запуском — действие на Pixel',
+    modalTrashBody: (warning) => `Чтобы Google Photos не пометил залитые файлы как «уже загружены», сначала:<br><br>
+      <b>1.</b> Открой <b>Google Photos</b> на Pixel<br>
+      <b>2.</b> Нажми на аватарку (правый верхний угол)<br>
+      <b>3.</b> Выбери <b>«Use Photos without an account»</b><br><br>
+      После этого нажми <b>Готово, запустить</b>.${warning}`,
+    modalTrashEmptyWarning: `<br><div style="margin-top:10px;padding:8px 10px;background:rgba(248,113,113,.1);border:1px solid rgba(248,113,113,.3);border-radius:6px;font-size:12px;color:var(--error)">⚠️ «Постоянно удалять из корзины» включено — файлы удалятся из корзины навсегда сразу после перемещения в неё.</div>`,
+    modalTrashCancel: 'Отмена',
+    modalTrashConfirm: 'Готово, запустить',
+
+    modalAfterTrashTitle: '✓ Файлы залиты на Pixel — верни аккаунт',
+    modalAfterTrashBody: `Файлы запушены на Pixel. Теперь верни Google-аккаунт, чтобы Photos начал бэкап:<br><br>
+      <b>1.</b> Открой <b>Google Photos</b> на Pixel<br>
+      <b>2.</b> Нажми <b>«Sign in»</b><br>
+      <b>3.</b> Войди в свой <b>Google-аккаунт</b><br><br>
+      <div style="padding:8px 10px;background:rgba(251,191,36,.1);border:1px solid rgba(251,191,36,.3);border-radius:6px;font-size:12px;color:var(--warn)">⚠️ Если аккаунт уже выбран — Google может сразу спросить про включение синхронизации. Переключись на тот аккаунт, который был выбран на предыдущем шаге, и согласись на синхронизацию.</div><br>
+      Google Photos увидит новые файлы и загрузит их в облако бесплатно.<br><br>
+      Дождись завершения бэкапа, потом нажми <b>Проверить</b> (шаг 5).`,
+    modalAfterTrashClose: 'Понял, закрыть',
+
+    modalAfterCleanupTitle: '✓ Папка очищена',
+    modalAfterCleanupBody: `Файлы удалены через ADB, но <b>Google Files</b> и <b>Google Photos</b> на Pixel могут ещё показывать их в списке — это нормально.<br><br>
+      Android использует медиаиндекс, который не обновляется мгновенно. Файлов физически уже нет, поэтому при попытке удалить их из приложения будет ошибка <i>«не удалось удалить»</i>.<br><br>
+      <b>Что делать:</b> просто перезагрузи Pixel — после перезагрузки медиаиндекс пересканируется и «призраки» исчезнут.`,
+    modalAfterCleanupClose: 'Понял',
+
+    popupCdpTitle: 'CDP — Chrome DevTools Protocol',
+    popupCdpBody: `<b>CDP</b> — отладочный API, встроенный в Chrome. Приложение использует его для общения с открытой вкладкой Google Photos — считывает токены аутентификации и делает API-запросы от твоего имени.<br><br>
+<b>Зелёный значок:</b> Chrome запущен с <code>--remote-debugging-port=9222</code> и имеет открытую вкладку Google Photos.<br><br>
+Все операции (Сканировать, Удалить, Проверить) требуют активного CDP-соединения.`,
+
+    adbNotFound: `ADB-бинарник не найден в папке adb/. Скачай Platform Tools с https://developer.android.com/tools/releases/platform-tools и положи adb.exe в папку adb/.`,
+    adbDeviceNotReady: (states) => `ADB: устройство(а) обнаружены, но пока не готовы к выбору: ${states}. Проверь запрос авторизации USB-отладки на телефоне.`,
+
+    popupAdbTitle: 'ADB — Android Debug Bridge',
+    popupAdbBody: `<b>ADB</b> — инструмент для общения с Android-устройствами по USB. Приложение использует его для загрузки фото в папку камеры на Pixel 1.<br><br>
+Google Photos на Pixel затем делает бэкап — а у Pixel 1 есть постоянное исключение: все загрузки стоят <b>ноль квоты</b>.<br><br>
+<b>Настройка:</b> Скачай <a href="https://developer.android.com/tools/releases/platform-tools" target="_blank" style="color:var(--accent)">Platform Tools</a> и положи <code>adb.exe</code> в папку <code>adb/</code> рядом с проектом.<br><br>
+<b>Зелёный значок:</b> Pixel 1 подключён по USB, USB-отладка разрешена в настройках разработчика.<br><br>
+ADB нужен только для шагов <b>Удалить + залить</b> и <b>Очистить Pixel</b>.`,
+
+    popupChromeTitle: 'Зачем запускать Chrome?',
+    popupChromeBody: `Все запросы к Google Photos идут через браузер — не напрямую из приложения. Это нужно потому, что API Google требует <b>сессионных кук</b>, которые существуют только внутри Chrome.<br><br>
+Нажав <b>Запустить Chrome</b>, открывается отдельное окно Chrome с:<br>
+• включённой удалённой отладкой (порт 9222)<br>
+• изолированным временным профилем<br><br>
+Войди в Google Photos в этом окне. CDP-значок станет зелёным после подключения.<br><br>
+Если Chrome уже запущен с <code>--remote-debugging-port=9222</code>, этот шаг можно пропустить.`,
+
+    popupAlbumsTitle: 'Откуда берутся альбомы?',
+    popupAlbumsBody: `Альбомы загружаются из <b>Google Photos через Chrome</b> — не с Pixel и не из локальных файлов.<br><br>
+При нажатии «Загрузить» приложение просит Chrome получить список альбомов через тот же API, который использует сайт Google Photos.<br><br>
+<b>Требования:</b><br>
+• Chrome подключён (зелёный CDP)<br>
+• Вкладка Google Photos открыта и авторизована<br><br>
+<b>Примечание:</b> Pixel здесь не задействован — он используется только на шаге «Удалить + залить» для перезаливки без квоты.`,
+
+    albumsLoaded: (n) => `Загружено альбомов: ${n}.`,
+    albumsError: (e) => `Ошибка альбомов: ${e}`,
+    albumsFailed: (e) => `Не удалось загрузить альбомы: ${e}`,
+    chromeLaunched: (dir) => `Chrome запущен. Профиль: ${dir}`,
+    chromeFailed: (e) => `Ошибка запуска Chrome: ${e}`,
+    profileDeleted: (p) => `Профиль удалён: ${p}`,
+    profileDeleteFailed: (e) => `Ошибка удаления: ${e}`,
+    manifestReset: 'Манифест сброшен.',
+    confirmReset: 'Удалить manifest.json и сбросить все шаги?\n\nСкачанные файлы удалены не будут.',
+    confirmResetVerify: 'Сбросить статус проверки у всех элементов, чтобы можно было проверить заново (например, в другом аккаунте)?',
+    confirmDeleteProfile: (label, dir) => `Удалить профиль Chrome${label}?\n${dir}\n\nУбедись, что Chrome закрыт.`,
+    gotIt: 'Понял',
+    lblConcurrency: 'Параллельных потоков:',
+    btnStop: 'Стоп',
+    btnStopping: 'Остановка…',
+    viewerEmpty: 'Нет элементов',
+    viewerNoMatches: 'Нет совпадений',
+    refreshTitle: 'Обновить статус',
+    badgeCdpTitle: 'Нажми, чтобы узнать про CDP',
+    badgeAdbTitle: 'Нажми, чтобы узнать про ADB',
+  },
+
+  zh_TW: {
+    appTitle: 'Google Photos Quota Reclaim',
+    launchChrome: '啟動 Chrome',
+    deleteProfile: '刪除設定檔',
+    reset: '重設',
+    resetTooltip: '刪除 manifest.json 並重設所有步驟狀態。已下載的檔案不會被刪除。',
+
+    albums: '相簿',
+    albumsEmpty: '相簿是從 <b>Chrome 裡的 Google 相簿</b> 載入，不是從 Pixel。<br><br>請先連上 Chrome（CDP 徽章變綠），再按「載入」。',
+    albumsNone: '此 Google 帳戶沒有相簿。<br><small>相簿是從 Chrome 裡的 Google 相簿取得。</small>',
+    load: '載入',
+    reload: '重新載入',
+    all: '全選',
+    none: '清除',
+    selectedCount: (n) => `已選 ${n} 個`,
+    workDirLabel: (dir) => `工作目錄：${dir}`,
+    downloadsLabel: (n) => `下載：${n} 個檔案`,
+
+    manifestStats: '清單統計',
+    statTotal: '總項目',
+    statQuota: '佔用配額',
+    statDownloaded: '已下載',
+    statEnriched: '已補齊（dedupKey）',
+    statAlbumsSaved: '已儲存相簿',
+    statTrashed: '已刪除 + 已推送',
+    statVerified: '已驗證',
+    statRestored: '已還原相簿',
+
+    pipeline: '流程',
+
+    step1Name: '掃描與準備',
+    step1Desc: '在側欄選擇相簿，或切換為「掃描整個媒體庫」 · 取得 dedupKey · 儲存相簿歸屬 · 偵測已封存照片',
+    step1Pending: '尚未選擇相簿',
+    step1Ready: (n) => `已選 ${n} 本相簿`,
+    step1ScanAll: '掃描整個媒體庫',
+    scanQuotaFound: (n) => `找到 ${n} 個佔用配額的項目`,
+    scanReadyToScan: '可以開始掃描',
+    scanModeAlbums: '掃描相簿',
+    scanModeAll: '掃描整個媒體庫',
+    btnScan: '掃描',
+    btnViewScanned: '檢視',
+
+    step2Name: '配對下載檔',
+    step2Desc: '將 ./downloads/ 中的檔案對應到清單項目',
+    step2Note: '請把照片檔放到 <b>downloads/</b> 資料夾並按「配對」。若要保留中繼資料（日期、GPS），請先用 <a href="https://github.com/Xentraxx/GooglePhotosTakeoutHelper_Neo" target="_blank" style="color:var(--accent)">GooglePhotosTakeoutHelper Neo</a> 處理——或跳過 Takeout，直接按「下載」從 Google 相簿抓取。',
+    step2Pending1: '請先掃描',
+    step2Pending2: '把檔案放到 ./downloads/，再按配對——或按「下載」',
+    step2Done: (n, total) => `已配對 ${n}/${total} 個檔案`,
+    btnMatch: '配對',
+    btnViewUnmatched: '檢視',
+    btnDownloadDirect: '下載',
+
+    viewerScannedTitle: '已掃描的佔用配額項目',
+    viewerUnmatchedTitle: '未配對項目（沒有本機檔案）',
+    viewerSearch: '搜尋…',
+    viewerOriginalQuality: '原始畫質',
+    viewerStorageSaver: '節省空間',
+    viewerNoAlbum: '無相簿',
+    viewerArchived: '已封存',
+    viewerClose: '關閉',
+    viewerCountAll: (n) => `${n} 個項目`,
+    viewerCountFiltered: (n, total) => `${n} / ${total}`,
+    viewerDownloadThese: (n) => n > 0 ? `下載 ${n} 個檔案` : '沒有可下載的項目',
+
+    step3Name: '移到垃圾桶並重新上傳',
+    step3Desc: '從雲端刪除 · 推送到 Pixel · ',
+    step3Irreversible: '不可復原',
+    step3Pending1: '請先配對下載檔',
+    step3Pending2: (n) => `${n} 個項目就緒`,
+    step3Done: (n) => `已推送 ${n} 個項目到 Pixel`,
+    chkEmptyTrash: '移到垃圾桶後立刻永久刪除（避免重新上傳時被自動丟進垃圾桶）',
+    btnTrash: '刪除並推送',
+    btnPush: '推送',
+
+    step4Name: '驗證',
+    step4Desc: '等待 Pixel 完成備份，再確認配額已釋放',
+    step4Pending1: '請先完成刪除並重新上傳',
+    step4Pending2: '等待 Pixel 備份完成後再驗證',
+    step4Done: (n, total) => `已驗證 ${n}/${total}`,
+    btnVerify: '驗證',
+    btnViewUnverified: '檢視',
+    btnVerifyReset: '重設驗證',
+    viewerUnverifiedTitle: '尚未驗證（等待備份）',
+
+    step5Name: '還原相簿與封存',
+    step5Desc: '把照片放回原本的相簿 · 將原本已封存的照片重新封存',
+    step5Pending1: '請先驗證',
+    step5Pending2: (n) => `${n} 個項目就緒`,
+    step5Done: (n) => `已還原 ${n} 個項目`,
+    btnRestore: '還原',
+
+    step6Name: '清理 Pixel',
+    step6Desc: '從 /sdcard/DCIM/Camera/ 移除已推送的檔案',
+    step6Pending: '請先完成刪除並重新上傳',
+    step6Ready: (n) => `Pixel 上有 ${n} 個檔案待清理`,
+    btnCleanup: '清理',
+    btnResetAll: '全部重設',
+    btnResetAllTitle: '刪除 Chrome 設定檔、重設清單並清空 downloads/',
+    modalResetAllTitle: '⚠️ 完全重設——刪除 Chrome 設定檔、清單與 downloads？',
+    modalResetAllBody: `這會執行三件事：<br><br>
+      <b>1.</b> 刪除自動化用的 Chrome 設定檔（需要重新登入）<br>
+      <b>2.</b> 重設 <b>manifest.json</b><br>
+      <b>3.</b> 刪除 <b>downloads/</b> 內的所有內容，包含 README.md<br><br>
+      完全恢復到初始狀態。若 downloads/ 的子資料夾是指向其他位置的符號連結，只會刪除連結本身——其指向的檔案不受影響。<br><br>
+      此操作無法復原。`,
+    modalResetAllCancel: '取消',
+    modalResetAllConfirm: '刪除並重設',
+
+
+    logTitle: '日誌',
+    logClear: '清除',
+    logSave: '儲存',
+    logSaved: '日誌已儲存。',
+    collapseTitle: '收合',
+    expandTitle: '展開',
+    themeDark: '深色',
+    themeLight: '淺色',
+    themeBackground: '背景',
+    themeAccent: '強調色',
+
+    modalTrashTitle: '⚠️ 開始前請先在 Pixel 上操作',
+    modalTrashBody: (warning) => `為避免 Google 相簿把上傳的檔案標成「已經上傳過」，請先：<br><br>
+      <b>1.</b> 在 Pixel 開啟 <b>Google 相簿</b><br>
+      <b>2.</b> 點右上角頭像<br>
+      <b>3.</b> 選擇 <b>「不使用帳戶使用『相片』」</b><br><br>
+      完成後按 <b>就緒，開始</b>。${warning}`,
+    modalTrashEmptyWarning: `<br><div style="margin-top:10px;padding:8px 10px;background:rgba(248,113,113,.1);border:1px solid rgba(248,113,113,.3);border-radius:6px;font-size:12px;color:var(--error)">⚠️ 已啟用「從垃圾桶永久刪除」——檔案移入垃圾桶後會立刻被永久移除。</div>`,
+    modalTrashCancel: '取消',
+    modalTrashConfirm: '就緒，開始',
+
+    modalAfterTrashTitle: '✓ 檔案已推送到 Pixel — 請恢復帳戶',
+    modalAfterTrashBody: `檔案已推送到 Pixel。現在請恢復 Google 帳戶，讓相簿開始備份：<br><br>
+      <b>1.</b> 在 Pixel 開啟 <b>Google 相簿</b><br>
+      <b>2.</b> 點 <b>「登入」</b><br>
+      <b>3.</b> 使用你的 <b>Google 帳戶</b> 登入<br><br>
+      <div style="padding:8px 10px;background:rgba(251,191,36,.1);border:1px solid rgba(251,191,36,.3);border-radius:6px;font-size:12px;color:var(--warn)">⚠️ 若帳戶已經選好，Google 可能會立刻詢問是否開啟同步。請切到上一步使用的同一個帳戶，並同意同步。</div><br>
+      Google 相簿會看到新檔案，並免費上傳到雲端。<br><br>
+      等待備份完成後，再按第 5 步的 <b>驗證</b>。`,
+    modalAfterTrashClose: '知道了，關閉',
+
+    modalAfterCleanupTitle: '✓ 資料夾已清理',
+    modalAfterCleanupBody: `檔案已透過 ADB 刪除，但 Pixel 上的 <b>Google 檔案</b> 和 <b>Google 相簿</b> 可能還會顯示它們——這是正常的。<br><br>
+      Android 的媒體索引不會立刻更新。檔案實體已經不在，所以從 App 再刪一次會出現 <i>「無法刪除」</i>。<br><br>
+      <b>怎麼辦：</b> 重開 Pixel 即可。重開後媒體索引會重新掃描，「幽靈」項目就會消失。`,
+    modalAfterCleanupClose: '知道了',
+
+    popupCdpTitle: 'CDP — Chrome DevTools Protocol',
+    popupCdpBody: `<b>CDP</b> 是 Chrome 內建的除錯 API。本程式用它與已開啟的 Google 相簿分頁通訊——讀取驗證權杖、代你呼叫 API，並在帳戶之間切換。<br><br>
+<b>綠色徽章：</b> Chrome 已用 <code>--remote-debugging-port=9222</code> 啟動，且已開啟 Google 相簿分頁。<br><br>
+所有媒體庫操作（掃描、補齊、刪除、驗證）都需要有效的 CDP 連線。`,
+
+    adbNotFound: `在 adb/ 資料夾找不到 ADB 程式。請從 https://developer.android.com/tools/releases/platform-tools 下載 Platform Tools，並把 adb.exe 放到 adb/ 資料夾。`,
+    adbDeviceNotReady: (states) => `ADB：偵測到裝置但尚未可供選擇：${states}。請檢查手機上是否有 USB 偵錯授權提示。`,
+
+    popupAdbTitle: 'ADB — Android Debug Bridge',
+    popupAdbBody: `<b>ADB</b> 是透過 USB 與 Android 裝置通訊的工具。本程式用它把照片推送到 Pixel 1 的相機資料夾。<br><br>
+Pixel 上的 Google 相簿接著會備份這些檔案——而 Pixel 1 有永久例外，上傳完全 <b>不佔配額</b>。<br><br>
+<b>設定：</b> 下載 <a href="https://developer.android.com/tools/releases/platform-tools" target="_blank" style="color:var(--accent)">Platform Tools</a>，把 <code>adb.exe</code> 放到專案旁的 <code>adb/</code> 資料夾。<br><br>
+<b>綠色徽章：</b> Pixel 1 已用 USB 連接、開發人員選項已授權 USB 偵錯，且 ADB 看得到裝置。<br><br>
+只有 <b>移到垃圾桶並重新上傳</b> 和 <b>清理 Pixel</b> 這兩步需要 ADB。`,
+
+    popupChromeTitle: '為什麼要啟動 Chrome？',
+    popupChromeBody: `所有 Google 相簿 API 呼叫都經過瀏覽器，而不是直接由本程式發出。因為 Google 的 API 需要你的 <b>工作階段 Cookie</b>，那些 Cookie 只存在 Chrome 裡。<br><br>
+按 <b>啟動 Chrome</b> 會開啟專用視窗，並具備：<br>
+• 遠端偵錯（埠 9222）<br>
+• 隔離的暫時設定檔<br><br>
+請在該視窗登入 Google 相簿。連上後 CDP 徽章會變綠。<br><br>
+若 Chrome 已經用 <code>--remote-debugging-port=9222</code> 在跑，可以跳過這步。`,
+
+    popupAlbumsTitle: '相簿從哪裡來？',
+    popupAlbumsBody: `相簿是透過 <b>Chrome 從 Google 相簿</b> 取得，不是來自 Pixel 或本機檔案。<br><br>
+按「載入」時，程式會請 Chrome 用 Google 相簿網站內部的同一套 API 取得相簿清單。<br><br>
+<b>條件：</b><br>
+• Chrome 已連線（CDP 徽章為綠色）<br>
+• 已開啟並登入 Google 相簿分頁<br><br>
+<b>注意：</b> 這一步不需要 Pixel——Pixel 只用在「移到垃圾桶並重新上傳」，以便以零配額重新上傳。`,
+
+    albumsLoaded: (n) => `已載入 ${n} 本相簿。`,
+    albumsError: (e) => `相簿錯誤：${e}`,
+    albumsFailed: (e) => `無法載入相簿：${e}`,
+    chromeLaunched: (dir) => `已啟動 Chrome。設定檔：${dir}`,
+    chromeFailed: (e) => `Chrome 啟動失敗：${e}`,
+    profileDeleted: (p) => `已刪除設定檔：${p}`,
+    profileDeleteFailed: (e) => `刪除失敗：${e}`,
+    manifestReset: '清單已重設。',
+    confirmReset: '要刪除 manifest.json 並重設所有步驟狀態嗎？\n\n已下載的檔案不會被刪除。',
+    confirmResetVerify: '要清除所有項目的驗證狀態，以便重新驗證嗎（例如改用另一個帳號驗證）？',
+    confirmDeleteProfile: (label, dir) => `要刪除 Chrome 設定檔${label}嗎？\n${dir}\n\n請先關閉 Chrome。`,
+    gotIt: '知道了',
+    lblConcurrency: '平行串流數：',
+    btnStop: '停止',
+    btnStopping: '正在停止…',
+    viewerEmpty: '沒有項目',
+    viewerNoMatches: '沒有符合的結果',
+    refreshTitle: '重新整理狀態',
+    badgeCdpTitle: '點擊了解 CDP',
+    badgeAdbTitle: '點擊了解 ADB',
+  },
+
+  zh_CN: {
+    appTitle: 'Google Photos Quota Reclaim',
+    launchChrome: '启动 Chrome',
+    deleteProfile: '删除配置文件',
+    reset: '重置',
+    resetTooltip: '删除 manifest.json 并重置所有步骤状态。已下载的文件不会被删除。',
+
+    albums: '相册',
+    albumsEmpty: '相册从 <b>Chrome 中的 Google 相册</b> 加载，而不是从 Pixel。<br><br>请先连接 Chrome（CDP 徽章变绿），再点击“加载”。',
+    albumsNone: '此 Google 帐号没有相册。<br><small>相册从 Chrome 中的 Google 相册获取。</small>',
+    load: '加载',
+    reload: '重新加载',
+    all: '全选',
+    none: '清除',
+    selectedCount: (n) => `已选 ${n} 个`,
+    workDirLabel: (dir) => `工作目录：${dir}`,
+    downloadsLabel: (n) => `下载：${n} 个文件`,
+
+    manifestStats: '清单统计',
+    statTotal: '总项目',
+    statQuota: '占用配额',
+    statDownloaded: '已下载',
+    statEnriched: '已补齐（dedupKey）',
+    statAlbumsSaved: '已保存相册',
+    statTrashed: '已删除 + 已推送',
+    statVerified: '已验证',
+    statRestored: '已还原相册',
+
+    pipeline: '流程',
+
+    step1Name: '扫描并准备',
+    step1Desc: '在侧栏选择相册，或切换为「扫描整个媒体库」 · 获取 dedupKey · 保存相册归属 · 检测已归档照片',
+    step1Pending: '尚未选择相册',
+    step1Ready: (n) => `已选 ${n} 个相册`,
+    step1ScanAll: '扫描整个媒体库',
+    scanQuotaFound: (n) => `找到 ${n} 个占用配额的项目`,
+    scanReadyToScan: '可以开始扫描',
+    scanModeAlbums: '扫描相册',
+    scanModeAll: '扫描整个媒体库',
+    btnScan: '扫描',
+    btnViewScanned: '查看',
+
+    step2Name: '匹配下载文件',
+    step2Desc: '将 ./downloads/ 中的文件对应到清单项目',
+    step2Note: '请把照片文件放到 <b>downloads/</b> 文件夹并点击「匹配」。若要保留元数据（日期、GPS），请先用 <a href="https://github.com/Xentraxx/GooglePhotosTakeoutHelper_Neo" target="_blank" style="color:var(--accent)">GooglePhotosTakeoutHelper Neo</a> 处理——或跳过 Takeout，直接点击「下载」从 Google 相册获取。',
+    step2Pending1: '请先扫描',
+    step2Pending2: '把文件放到 ./downloads/，再点击匹配——或点击「下载」',
+    step2Done: (n, total) => `已匹配 ${n}/${total} 个文件`,
+    btnMatch: '匹配',
+    btnViewUnmatched: '查看',
+    btnDownloadDirect: '下载',
+
+    viewerScannedTitle: '已扫描的占用配额项目',
+    viewerUnmatchedTitle: '未匹配项目（没有本地文件）',
+    viewerSearch: '搜索…',
+    viewerOriginalQuality: '原始画质',
+    viewerStorageSaver: '节省空间',
+    viewerNoAlbum: '无相册',
+    viewerArchived: '已归档',
+    viewerClose: '关闭',
+    viewerCountAll: (n) => `${n} 个项目`,
+    viewerCountFiltered: (n, total) => `${n} / ${total}`,
+    viewerDownloadThese: (n) => n > 0 ? `下载 ${n} 个文件` : '没有可下载的项目',
+
+    step3Name: '移到回收站并重新上传',
+    step3Desc: '从云端删除 · 推送到 Pixel · ',
+    step3Irreversible: '不可撤销',
+    step3Pending1: '请先匹配下载文件',
+    step3Pending2: (n) => `${n} 个项目就绪`,
+    step3Done: (n) => `已推送 ${n} 个项目到 Pixel`,
+    chkEmptyTrash: '移到回收站后立即永久删除（避免重新上传时被自动丢进回收站）',
+    btnTrash: '删除并推送',
+    btnPush: '推送',
+
+    step4Name: '验证',
+    step4Desc: '等待 Pixel 完成备份，再确认配额已释放',
+    step4Pending1: '请先完成删除并重新上传',
+    step4Pending2: '等待 Pixel 备份完成后再验证',
+    step4Done: (n, total) => `已验证 ${n}/${total}`,
+    btnVerify: '验证',
+    btnViewUnverified: '查看',
+    btnVerifyReset: '重置验证',
+    viewerUnverifiedTitle: '尚未验证（等待备份）',
+
+    step5Name: '还原相册与归档',
+    step5Desc: '把照片放回原来的相册 · 将原本已归档的照片重新归档',
+    step5Pending1: '请先验证',
+    step5Pending2: (n) => `${n} 个项目就绪`,
+    step5Done: (n) => `已还原 ${n} 个项目`,
+    btnRestore: '还原',
+
+    step6Name: '清理 Pixel',
+    step6Desc: '从 /sdcard/DCIM/Camera/ 移除已推送的文件',
+    step6Pending: '请先完成删除并重新上传',
+    step6Ready: (n) => `Pixel 上有 ${n} 个文件待清理`,
+    btnCleanup: '清理',
+    btnResetAll: '全部重置',
+    btnResetAllTitle: '删除 Chrome 配置文件、重置清单并清空 downloads/',
+    modalResetAllTitle: '⚠️ 完全重置——删除 Chrome 配置文件、清单与 downloads？',
+    modalResetAllBody: `这会执行三件事：<br><br>
+      <b>1.</b> 删除自动化用的 Chrome 配置文件（需要重新登录）<br>
+      <b>2.</b> 重置 <b>manifest.json</b><br>
+      <b>3.</b> 删除 <b>downloads/</b> 内的所有内容，包括 README.md<br><br>
+      完全恢复到初始状态。若 downloads/ 的子文件夹是指向其他位置的符号链接，只会删除链接本身——其指向的文件不受影响。<br><br>
+      此操作无法撤销。`,
+    modalResetAllCancel: '取消',
+    modalResetAllConfirm: '删除并重置',
+
+
+    logTitle: '日志',
+    logClear: '清除',
+    logSave: '保存',
+    logSaved: '日志已保存。',
+    collapseTitle: '收起',
+    expandTitle: '展开',
+    themeDark: '深色',
+    themeLight: '浅色',
+    themeBackground: '背景',
+    themeAccent: '强调色',
+
+    modalTrashTitle: '⚠️ 开始前请先在 Pixel 上操作',
+    modalTrashBody: (warning) => `为避免 Google 相册把上传的文件标成“已经上传过”，请先：<br><br>
+      <b>1.</b> 在 Pixel 打开 <b>Google 相册</b><br>
+      <b>2.</b> 点右上角头像<br>
+      <b>3.</b> 选择 <b>“不使用帐号使用相册”</b><br><br>
+      完成后点击 <b>就绪，开始</b>。${warning}`,
+    modalTrashEmptyWarning: `<br><div style="margin-top:10px;padding:8px 10px;background:rgba(248,113,113,.1);border:1px solid rgba(248,113,113,.3);border-radius:6px;font-size:12px;color:var(--error)">⚠️ 已启用“从回收站永久删除”——文件移入回收站后会立刻被永久移除。</div>`,
+    modalTrashCancel: '取消',
+    modalTrashConfirm: '就绪，开始',
+
+    modalAfterTrashTitle: '✓ 文件已推送到 Pixel — 请恢复帐号',
+    modalAfterTrashBody: `文件已推送到 Pixel。现在请恢复 Google 帐号，让相册开始备份：<br><br>
+      <b>1.</b> 在 Pixel 打开 <b>Google 相册</b><br>
+      <b>2.</b> 点 <b>“登录”</b><br>
+      <b>3.</b> 使用你的 <b>Google 帐号</b> 登录<br><br>
+      <div style="padding:8px 10px;background:rgba(251,191,36,.1);border:1px solid rgba(251,191,36,.3);border-radius:6px;font-size:12px;color:var(--warn)">⚠️ 若帐号已经选好，Google 可能会立刻询问是否开启同步。请切到上一步使用的同一个帐号，并同意同步。</div><br>
+      Google 相册会看到新文件，并免费上传到云端。<br><br>
+      等待备份完成后，再点第 5 步的 <b>验证</b>。`,
+    modalAfterTrashClose: '知道了，关闭',
+
+    modalAfterCleanupTitle: '✓ 文件夹已清理',
+    modalAfterCleanupBody: `文件已通过 ADB 删除，但 Pixel 上的 <b>文件</b> 和 <b>Google 相册</b> 可能还会显示它们——这是正常的。<br><br>
+      Android 的媒体索引不会立刻更新。文件实体已经不在，所以从应用再删一次会出现 <i>“无法删除”</i>。<br><br>
+      <b>怎么办：</b> 重启 Pixel 即可。重启后媒体索引会重新扫描，“幽灵”项目就会消失。`,
+    modalAfterCleanupClose: '知道了',
+
+    popupCdpTitle: 'CDP — Chrome DevTools Protocol',
+    popupCdpBody: `<b>CDP</b> 是 Chrome 内置的调试 API。本程序用它与已打开的 Google 相册标签页通信——读取身份验证令牌、代你调用 API，并在帐号之间切换。<br><br>
+<b>绿色徽章：</b> Chrome 已用 <code>--remote-debugging-port=9222</code> 启动，且已打开 Google 相册标签页。<br><br>
+所有媒体库操作（扫描、补齐、删除、验证）都需要有效的 CDP 连接。`,
+
+    adbNotFound: `在 adb/ 文件夹找不到 ADB 程序。请从 https://developer.android.com/tools/releases/platform-tools 下载 Platform Tools，并把 adb.exe 放到 adb/ 文件夹。`,
+    adbDeviceNotReady: (states) => `ADB：检测到设备但尚未可供选择：${states}。请检查手机上是否有 USB 调试授权提示。`,
+
+    popupAdbTitle: 'ADB — Android Debug Bridge',
+    popupAdbBody: `<b>ADB</b> 是通过 USB 与 Android 设备通信的工具。本程序用它把照片推送到 Pixel 1 的相机文件夹。<br><br>
+Pixel 上的 Google 相册接着会备份这些文件——而 Pixel 1 有永久例外，上传完全 <b>不占配额</b>。<br><br>
+<b>设置：</b> 下载 <a href="https://developer.android.com/tools/releases/platform-tools" target="_blank" style="color:var(--accent)">Platform Tools</a>，把 <code>adb.exe</code> 放到项目旁的 <code>adb/</code> 文件夹。<br><br>
+<b>绿色徽章：</b> Pixel 1 已用 USB 连接、开发者选项已授权 USB 调试，且 ADB 能看到设备。<br><br>
+只有 <b>移到回收站并重新上传</b> 和 <b>清理 Pixel</b> 这两步需要 ADB。`,
+
+    popupChromeTitle: '为什么要启动 Chrome？',
+    popupChromeBody: `所有 Google 相册 API 调用都经过浏览器，而不是直接由本程序发出。因为 Google 的 API 需要你的 <b>会话 Cookie</b>，那些 Cookie 只存在于 Chrome 中。<br><br>
+点击 <b>启动 Chrome</b> 会打开专用窗口，并具备：<br>
+• 远程调试（端口 9222）<br>
+• 隔离的临时配置文件<br><br>
+请在该窗口登录 Google 相册。连接后 CDP 徽章会变绿。<br><br>
+如果 Chrome 已经用 <code>--remote-debugging-port=9222</code> 在运行，可以跳过这一步。`,
+
+    popupAlbumsTitle: '相册从哪里来？',
+    popupAlbumsBody: `相册通过 <b>Chrome 从 Google 相册</b> 获取，不是来自 Pixel 或本地文件。<br><br>
+点击“加载”时，程序会请 Chrome 用 Google 相册网站内部的同一套 API 获取相册列表。<br><br>
+<b>条件：</b><br>
+• Chrome 已连接（CDP 徽章为绿色）<br>
+• 已打开并登录 Google 相册标签页<br><br>
+<b>注意：</b> 这一步不需要 Pixel——Pixel 只用在“移到回收站并重新上传”，以便以零配额重新上传。`,
+
+    albumsLoaded: (n) => `已加载 ${n} 个相册。`,
+    albumsError: (e) => `相册错误：${e}`,
+    albumsFailed: (e) => `无法加载相册：${e}`,
+    chromeLaunched: (dir) => `已启动 Chrome。配置文件：${dir}`,
+    chromeFailed: (e) => `Chrome 启动失败：${e}`,
+    profileDeleted: (p) => `已删除配置文件：${p}`,
+    profileDeleteFailed: (e) => `删除失败：${e}`,
+    manifestReset: '清单已重置。',
+    confirmReset: '要删除 manifest.json 并重置所有步骤状态吗？\n\n已下载的文件不会被删除。',
+    confirmResetVerify: '要清除所有项目的验证状态，以便重新验证吗（例如改用另一个账号验证）？',
+    confirmDeleteProfile: (label, dir) => `要删除 Chrome 配置文件${label}吗？\n${dir}\n\n请先关闭 Chrome。`,
+    gotIt: '知道了',
+    lblConcurrency: '并行流数：',
+    btnStop: '停止',
+    btnStopping: '正在停止…',
+    viewerEmpty: '没有项目',
+    viewerNoMatches: '没有匹配结果',
+    refreshTitle: '刷新状态',
+    badgeCdpTitle: '点击了解 CDP',
+    badgeAdbTitle: '点击了解 ADB',
+  },
+
+  ja_JP: {
+    appTitle: 'Google Photos Quota Reclaim',
+    launchChrome: 'Chrome を起動',
+    deleteProfile: 'プロファイルを削除',
+    reset: 'リセット',
+    resetTooltip: 'manifest.json を削除し、すべてのステップ状態をリセットします。ダウンロード済みファイルは削除されません。',
+
+    albums: 'アルバム',
+    albumsEmpty: 'アルバムは Pixel からではなく、<b>Chrome 内の Google フォト</b> から読み込みます。<br><br>Chrome を接続して（CDP バッジが緑）、「読み込み」を押してください。',
+    albumsNone: 'この Google アカウントにアルバムはありません。<br><small>アルバムは Chrome 内の Google フォトから取得します。</small>',
+    load: '読み込み',
+    reload: '再読み込み',
+    all: 'すべて選択',
+    none: '解除',
+    selectedCount: (n) => `${n} 件選択中`,
+    workDirLabel: (dir) => `作業フォルダ：${dir}`,
+    downloadsLabel: (n) => `ダウンロード：${n} ファイル`,
+
+    manifestStats: 'マニフェスト統計',
+    statTotal: '合計',
+    statQuota: '容量を消費',
+    statDownloaded: 'ダウンロード済み',
+    statEnriched: '補完済み（dedupKey）',
+    statAlbumsSaved: 'アルバム保存済み',
+    statTrashed: '削除 + 転送済み',
+    statVerified: '確認済み',
+    statRestored: 'アルバム復元済み',
+
+    pipeline: '手順',
+
+    step1Name: 'スキャンと準備',
+    step1Desc: 'サイドバーでアルバムを選ぶか、「ライブラリ全体をスキャン」に切り替える · dedupKey を取得 · アルバム所属を保存 · アーカイブ写真を検出',
+    step1Pending: 'アルバム未選択',
+    step1Ready: (n) => `${n} 件のアルバムを選択中`,
+    step1ScanAll: 'ライブラリ全体をスキャン',
+    scanQuotaFound: (n) => `容量消費アイテム ${n} 件を検出`,
+    scanReadyToScan: 'スキャンできます',
+    scanModeAlbums: 'アルバムをスキャン',
+    scanModeAll: 'ライブラリ全体をスキャン',
+    btnScan: 'スキャン',
+    btnViewScanned: '表示',
+
+    step2Name: 'ダウンロードを照合',
+    step2Desc: './downloads/ のファイルをマニフェスト項目に紐づける',
+    step2Note: '写真ファイルを <b>downloads/</b> フォルダに置いて「照合」を押してください。メタデータ（日付、GPS）を残す場合は、先に <a href="https://github.com/Xentraxx/GooglePhotosTakeoutHelper_Neo" target="_blank" style="color:var(--accent)">GooglePhotosTakeoutHelper Neo</a> で処理してください — または Takeout を使わず「ダウンロード」を押せば Google フォトから直接取得できます。',
+    step2Pending1: '先にスキャンしてください',
+    step2Pending2: './downloads/ にファイルを置いてから照合 — または「ダウンロード」を押す',
+    step2Done: (n, total) => `${n}/${total} ファイルを照合済み`,
+    btnMatch: '照合',
+    btnViewUnmatched: '表示',
+    btnDownloadDirect: 'ダウンロード',
+
+    viewerScannedTitle: 'スキャン済みの容量消費アイテム',
+    viewerUnmatchedTitle: '未照合（ローカルファイルなし）',
+    viewerSearch: '検索…',
+    viewerOriginalQuality: '元の画質',
+    viewerStorageSaver: 'ストレージ節約',
+    viewerNoAlbum: 'アルバムなし',
+    viewerArchived: 'アーカイブ済み',
+    viewerClose: '閉じる',
+    viewerCountAll: (n) => `${n} 件`,
+    viewerCountFiltered: (n, total) => `${n} / ${total}`,
+    viewerDownloadThese: (n) => n > 0 ? `${n} 件をダウンロード` : 'ダウンロードする項目がありません',
+
+    step3Name: 'ゴミ箱へ移動して再アップロード',
+    step3Desc: 'クラウドから削除 · Pixel に転送 · ',
+    step3Irreversible: '取り消し不可',
+    step3Pending1: '先にダウンロードを照合してください',
+    step3Pending2: (n) => `${n} 件の準備完了`,
+    step3Done: (n) => `Pixel に ${n} 件を転送済み`,
+    chkEmptyTrash: 'ゴミ箱へ移した直後に完全削除する（再アップロード時の自動ゴミ箱入りを防ぐ）',
+    btnTrash: '削除して転送',
+    btnPush: 'プッシュ',
+
+    step4Name: '確認',
+    step4Desc: 'Pixel のバックアップが完了するのを待ってから、容量が解放されたことを確認',
+    step4Pending1: '先に削除と再アップロードを完了してください',
+    step4Pending2: 'Pixel のバックアップを待ってから確認',
+    step4Done: (n, total) => `${n}/${total} 件を確認済み`,
+    btnVerify: '確認',
+    btnViewUnverified: '表示',
+    btnVerifyReset: '確認をリセット',
+    viewerUnverifiedTitle: '未確認（バックアップ待ち）',
+
+    step5Name: 'アルバムとアーカイブを復元',
+    step5Desc: '写真を元のアルバムに戻す · 以前アーカイブされていた写真を再アーカイブ',
+    step5Pending1: '先に確認してください',
+    step5Pending2: (n) => `${n} 件の準備完了`,
+    step5Done: (n) => `${n} 件を復元済み`,
+    btnRestore: '復元',
+
+    step6Name: 'Pixel をクリーンアップ',
+    step6Desc: '転送済みファイルを /sdcard/DCIM/Camera/ から削除',
+    step6Pending: '先に削除と再アップロードを完了してください',
+    step6Ready: (n) => `Pixel 上に ${n} 件の削除待ちファイル`,
+    btnCleanup: 'クリーンアップ',
+    btnResetAll: 'すべてリセット',
+    btnResetAllTitle: 'Chrome プロファイルを削除し、マニフェストをリセットして、downloads/ を空にする',
+    modalResetAllTitle: '⚠️ 完全リセット —— Chrome プロファイル、マニフェスト、downloads を削除しますか？',
+    modalResetAllBody: `以下の3つを行います：<br><br>
+      <b>1.</b> 自動化用の Chrome プロファイルを削除（再度サインインが必要になります）<br>
+      <b>2.</b> <b>manifest.json</b> をリセット<br>
+      <b>3.</b> <b>downloads/</b> 内のすべて（README.md を含む）を削除<br><br>
+      完全に初期状態に戻ります。downloads/ のサブフォルダが別の場所へのシンボリックリンクである場合、削除されるのはリンク自体のみで、リンク先のファイルには影響しません。<br><br>
+      この操作は元に戻せません。`,
+    modalResetAllCancel: 'キャンセル',
+    modalResetAllConfirm: '削除してリセット',
+
+
+    logTitle: 'ログ',
+    logClear: 'クリア',
+    logSave: '保存',
+    logSaved: 'ログを保存しました。',
+    collapseTitle: '折りたたむ',
+    expandTitle: '展開',
+    themeDark: 'ダーク',
+    themeLight: 'ライト',
+    themeBackground: '背景',
+    themeAccent: 'アクセント',
+
+    modalTrashTitle: '⚠️ 開始前に Pixel で操作してください',
+    modalTrashBody: (warning) => `Google フォトがアップロード済みファイルを「すでにアップロード済み」と見なさないように、先に：<br><br>
+      <b>1.</b> Pixel で <b>Google フォト</b> を開く<br>
+      <b>2.</b> 右上のアイコンをタップ<br>
+      <b>3.</b> <b>「アカウントなしでフォトを使用」</b> を選ぶ<br><br>
+      終わったら <b>準備完了、開始</b> を押してください。${warning}`,
+    modalTrashEmptyWarning: `<br><div style="margin-top:10px;padding:8px 10px;background:rgba(248,113,113,.1);border:1px solid rgba(248,113,113,.3);border-radius:6px;font-size:12px;color:var(--error)">⚠️ 「ゴミ箱から完全削除」が有効です。ファイルはゴミ箱へ移した直後に完全削除されます。</div>`,
+    modalTrashCancel: 'キャンセル',
+    modalTrashConfirm: '準備完了、開始',
+
+    modalAfterTrashTitle: '✓ Pixel へ転送済み — アカウントを戻してください',
+    modalAfterTrashBody: `ファイルは Pixel に転送されました。バックアップを始めるため、Google アカウントを戻してください：<br><br>
+      <b>1.</b> Pixel で <b>Google フォト</b> を開く<br>
+      <b>2.</b> <b>「ログイン」</b> をタップ<br>
+      <b>3.</b> 自分の <b>Google アカウント</b> でログイン<br><br>
+      <div style="padding:8px 10px;background:rgba(251,191,36,.1);border:1px solid rgba(251,191,36,.3);border-radius:6px;font-size:12px;color:var(--warn)">⚠️ アカウントがすでに選ばれている場合、Google はすぐ同期の確認を出すことがあります。前の手順で使った同じアカウントに切り替え、同期に同意してください。</div><br>
+      Google フォトは新しいファイルを検出し、無料でクラウドにアップロードします。<br><br>
+      バックアップが完了するのを待ってから、手順 5 の <b>確認</b> を押してください。`,
+    modalAfterTrashClose: '了解、閉じる',
+
+    modalAfterCleanupTitle: '✓ フォルダをクリーンアップしました',
+    modalAfterCleanupBody: `ファイルは ADB で削除済みですが、Pixel 上の <b>ファイル</b> や <b>Google フォト</b> にはまだ表示されることがあります。これは正常です。<br><br>
+      Android のメディア索引はすぐには更新されません。実体はすでにないため、アプリから削除しようとすると <i>「削除に失敗しました」</i> になります。<br><br>
+      <b>対処：</b> Pixel を再起動してください。再起動後に索引が再スキャンされ、「ゴースト」は消えます。`,
+    modalAfterCleanupClose: '了解',
+
+    popupCdpTitle: 'CDP — Chrome DevTools Protocol',
+    popupCdpBody: `<b>CDP</b> は Chrome 内蔵のデバッグ API です。このアプリは開いている Google フォトのタブと通信し、認証トークンの読み取り、API 呼び出し、アカウント切り替えを行います。<br><br>
+<b>緑のバッジ：</b> Chrome が <code>--remote-debugging-port=9222</code> で起動し、Google フォトのタブが開いています。<br><br>
+ライブラリ操作（スキャン、補完、削除、確認）には有効な CDP 接続が必要です。`,
+
+    adbNotFound: `adb/ フォルダに ADB バイナリが見つかりません。https://developer.android.com/tools/releases/platform-tools から Platform Tools をダウンロードし、adb.exe を adb/ フォルダに置いてください。`,
+    adbDeviceNotReady: (states) => `ADB: デバイスは検出されましたが、まだ選択できません: ${states}。スマートフォンで USB デバッグの許可プロンプトを確認してください。`,
+
+    popupAdbTitle: 'ADB — Android Debug Bridge',
+    popupAdbBody: `<b>ADB</b> は USB 経由で Android 端末と通信するツールです。このアプリは Pixel 1 のカメラフォルダへ写真を転送するために使います。<br><br>
+Pixel 上の Google フォトがその後バックアップします。Pixel 1 には永久の例外があり、アップロードは <b>容量を消費しません</b>。<br><br>
+<b>設定：</b> <a href="https://developer.android.com/tools/releases/platform-tools" target="_blank" style="color:var(--accent)">Platform Tools</a> をダウンロードし、<code>adb.exe</code> をプロジェクト横の <code>adb/</code> フォルダに置いてください。<br><br>
+<b>緑のバッジ：</b> Pixel 1 が USB 接続され、開発者向けオプションで USB デバッグが許可され、ADB が端末を認識しています。<br><br>
+ADB が必要なのは <b>ゴミ箱へ移動して再アップロード</b> と <b>Pixel をクリーンアップ</b> だけです。`,
+
+    popupChromeTitle: 'なぜ Chrome を起動するのか？',
+    popupChromeBody: `Google フォト API への呼び出しは、このアプリから直接ではなく、ブラウザ経由で行われます。Google の API には <b>セッション Cookie</b> が必要で、それは Chrome 内にしか存在しないためです。<br><br>
+<b>Chrome を起動</b> を押すと、専用ウィンドウが開き、次の状態になります：<br>
+• リモートデバッグ有効（ポート 9222）<br>
+• 隔離された一時プロファイル<br><br>
+そのウィンドウで Google フォトにログインしてください。接続されると CDP バッジが緑になります。<br><br>
+すでに <code>--remote-debugging-port=9222</code> で Chrome が動いている場合は、この手順を飛ばせます。`,
+
+    popupAlbumsTitle: 'アルバムはどこから来るのか？',
+    popupAlbumsBody: `アルバムは Pixel やローカルファイルからではなく、<b>Chrome 経由で Google フォト</b> から取得します。<br><br>
+「読み込み」を押すと、アプリは Chrome に、Google フォトサイト内部と同じ API でアルバム一覧を取得するよう依頼します。<br><br>
+<b>必要条件：</b><br>
+• Chrome が接続済み（CDP バッジが緑）<br>
+• Google フォトのタブが開いていてログイン済み<br><br>
+<b>注意：</b> この手順に Pixel は不要です。Pixel は「ゴミ箱へ移動して再アップロード」でのみ使い、容量ゼロで再アップロードします。`,
+
+    albumsLoaded: (n) => `アルバム ${n} 件を読み込みました。`,
+    albumsError: (e) => `アルバムエラー：${e}`,
+    albumsFailed: (e) => `アルバムの読み込みに失敗：${e}`,
+    chromeLaunched: (dir) => `Chrome を起動しました。プロファイル：${dir}`,
+    chromeFailed: (e) => `Chrome の起動に失敗：${e}`,
+    profileDeleted: (p) => `プロファイルを削除しました：${p}`,
+    profileDeleteFailed: (e) => `削除に失敗：${e}`,
+    manifestReset: 'マニフェストをリセットしました。',
+    confirmReset: 'manifest.json を削除し、すべてのステップ状態をリセットしますか？\n\nダウンロード済みファイルは削除されません。',
+    confirmResetVerify: 'すべての項目の確認状態をクリアして、再度確認（例えば別のアカウントで）できるようにしますか？',
+    confirmDeleteProfile: (label, dir) => `Chrome プロファイル${label}を削除しますか？\n${dir}\n\nChrome を閉じてから実行してください。`,
+    gotIt: '了解',
+    lblConcurrency: '並列ストリーム：',
+    btnStop: '停止',
+    btnStopping: '停止中…',
+    viewerEmpty: '項目がありません',
+    viewerNoMatches: '一致する項目がありません',
+    refreshTitle: '状態を更新',
+    badgeCdpTitle: 'クリックして CDP について見る',
+    badgeAdbTitle: 'クリックして ADB について見る',
+  }
+};
+
+const HTML_LANG = { en: 'en', ru: 'ru', zh_TW: 'zh-Hant', zh_CN: 'zh-Hans', ja_JP: 'ja' };
+if (!LANGS[lang]) lang = 'en';
+
+let POPUPS = {};
+
+function t(key, ...args) {
+  const val = LANGS[lang]?.[key] ?? LANGS.en[key];
+  if (typeof val === 'function') return val(...args);
+  return val ?? key;
+}
+
+function setText(id, text) { const el = document.getElementById(id); if (el) el.textContent = text; }
+function setHtml(id, html) { const el = document.getElementById(id); if (el) el.innerHTML = html; }
+
+function setLang(l) {
+  lang = l;
+  localStorage.setItem('lang', l);
+  applyLang();
+  updateStepStats(manifestStats);
+  updateButtonStates();
+}
+
+function buildPopups() {
+  POPUPS = {
+    cdp:    { title: t('popupCdpTitle'),    body: t('popupCdpBody')    },
+    adb:    { title: t('popupAdbTitle'),    body: t('popupAdbBody')    },
+    chrome: { title: t('popupChromeTitle'), body: t('popupChromeBody') },
+    albums: { title: t('popupAlbumsTitle'), body: t('popupAlbumsBody') },
+  };
+}
+
+const LANG_LABELS = { en: 'English', ru: 'Русский', zh_TW: '繁體中文', zh_CN: '简体中文', ja_JP: '日本語' };
+
+function toggleLangDropdown() {
+  const menu = document.getElementById('langDropdownMenu');
+  const btn = document.getElementById('langDropdownBtn');
+  const opening = !menu.classList.contains('open');
+  menu.classList.toggle('open', opening);
+  btn.classList.toggle('open', opening);
+}
+
+function closeLangDropdown() {
+  document.getElementById('langDropdownMenu')?.classList.remove('open');
+  document.getElementById('langDropdownBtn')?.classList.remove('open');
+}
+
+document.addEventListener('click', e => {
+  if (!document.getElementById('langDropdown')?.contains(e.target)) closeLangDropdown();
+});
+
+// ── Theme ────────────────────────────────────────────────────────────────────
+
+function toggleThemeDropdown() {
+  const menu = document.getElementById('themeDropdownMenu');
+  const btn = document.getElementById('themeDropdownBtn');
+  const opening = !menu.classList.contains('open');
+  menu.classList.toggle('open', opening);
+  btn.classList.toggle('open', opening);
+}
+
+function closeThemeDropdown() {
+  document.getElementById('themeDropdownMenu')?.classList.remove('open');
+  document.getElementById('themeDropdownBtn')?.classList.remove('open');
+}
+
+document.addEventListener('click', e => {
+  if (!document.getElementById('themeDropdown')?.contains(e.target)) closeThemeDropdown();
+});
+
+function setThemeMode(mode) {
+  themeMode = mode;
+  try { localStorage.setItem('themeMode', mode); } catch {}
+  applyTheme();
+}
+
+function setAccent(accent) {
+  themeAccent = accent;
+  try { localStorage.setItem('themeAccent', accent); } catch {}
+  applyTheme();
+}
+
+function setShade(shade) {
+  themeShade = shade;
+  try { localStorage.setItem('themeShade', shade); } catch {}
+  applyTheme();
+}
+
+function setShadeLight(shade) {
+  themeShadeLight = shade;
+  try { localStorage.setItem('themeShadeLight', shade); } catch {}
+  applyTheme();
+}
+
+function applyTheme() {
+  const root = document.documentElement;
+  if (themeMode === 'light') root.dataset.theme = 'light'; else delete root.dataset.theme;
+  if (themeAccent && themeAccent !== 'blue') root.dataset.accent = themeAccent; else delete root.dataset.accent;
+  // Each mode keeps its own shade attribute so switching modes doesn't lose either preference.
+  if (themeMode === 'dark' && themeShade && themeShade !== 'default') root.dataset.shade = themeShade;
+  else delete root.dataset.shade;
+  if (themeMode === 'light' && themeShadeLight && themeShadeLight !== 'default') root.dataset.shadeLight = themeShadeLight;
+  else delete root.dataset.shadeLight;
+
+  const label = document.getElementById('themeDropdownLabel');
+  if (label) label.textContent = t(themeMode === 'light' ? 'themeLight' : 'themeDark');
+  document.getElementById('themeModeDark')?.classList.toggle('active', themeMode === 'dark');
+  document.getElementById('themeModeLight')?.classList.toggle('active', themeMode === 'light');
+  document.querySelectorAll('.theme-swatch').forEach(sw => {
+    sw.classList.toggle('active', sw.dataset.accent === themeAccent);
+  });
+  document.querySelectorAll('#themeShadeRowDark .theme-shade-swatch').forEach(sw => {
+    sw.classList.toggle('active', sw.dataset.shade === themeShade);
+  });
+  document.querySelectorAll('#themeShadeRowLight .theme-shade-swatch').forEach(sw => {
+    sw.classList.toggle('active', sw.dataset.shadeLight === themeShadeLight);
+  });
+  const rowDark = document.getElementById('themeShadeRowDark');
+  const rowLight = document.getElementById('themeShadeRowLight');
+  if (rowDark) rowDark.style.display = themeMode === 'dark' ? '' : 'none';
+  if (rowLight) rowLight.style.display = themeMode === 'light' ? '' : 'none';
+}
+
+function applyLang() {
+  document.documentElement.lang = HTML_LANG[lang] || 'en';
+  const label = document.getElementById('langDropdownLabel');
+  if (label) label.textContent = LANG_LABELS[lang] || lang;
+  document.querySelectorAll('.lang-option').forEach(opt => {
+    const isActive = opt.dataset.lang === lang;
+    opt.classList.toggle('active', isActive);
+    const chk = opt.querySelector('.lang-option-check');
+    if (chk) chk.textContent = isActive ? '✓' : '';
+  });
+  closeLangDropdown();
+
+  setText('themeModeDark', t('themeDark'));
+  setText('themeModeLight', t('themeLight'));
+  setText('themeShadeLabel', t('themeBackground'));
+  setText('themeAccentLabel', t('themeAccent'));
+  applyTheme();
+
+  setText('app-title', t('appTitle'));
+  setText('btn-reset', t('reset'));
+  const resetBtn = document.getElementById('btn-reset');
+  if (resetBtn) resetBtn.title = t('resetTooltip');
+
+  const launchBtn = document.getElementById('launchChromeBtn');
+  if (launchBtn && !launchBtn.dataset.loading) launchBtn.textContent = t('launchChrome');
+
+  const delBtn = document.getElementById('deleteProfileBtn');
+  if (delBtn && delBtn.style.display !== 'none') {
+    const label = chromeProfileSizeMb != null ? ` (${chromeProfileSizeMb} MB)` : '';
+    delBtn.textContent = `${t('deleteProfile')}${label}`;
+  }
+
+  setText('sidebar-albums-title', t('albums'));
+  const loadBtn = document.getElementById('loadAlbumsBtn');
+  if (loadBtn && !loadBtn.dataset.loading) loadBtn.textContent = albums.length ? t('reload') : t('load');
+  setText('btn-select-all', t('all'));
+  setText('btn-select-none', t('none'));
+
+  setText('stat-section-title', t('manifestStats'));
+  setText('stat-label-total', t('statTotal'));
+  setText('stat-label-quota', t('statQuota'));
+  setText('stat-label-downloaded', t('statDownloaded'));
+  setText('stat-label-enriched', t('statEnriched'));
+  setText('stat-label-albums-saved', t('statAlbumsSaved'));
+  setText('stat-label-trashed', t('statTrashed'));
+  setText('stat-label-verified', t('statVerified'));
+  setText('stat-label-restored', t('statRestored'));
+
+  setText('pipeline-section-title', t('pipeline'));
+
+  setText('step1-name', t('step1Name'));
+  setText('step1-desc', t('step1Desc'));
+  setText('step2-name', t('step2Name'));
+  setText('step2-desc', t('step2Desc'));
+  setHtml('step2-note', t('step2Note'));
+  setText('step3-name', t('step3Name'));
+  setHtml('step3-desc', `${t('step3Desc')}<span style="color:var(--error)">${t('step3Irreversible')}</span>`);
+  setText('step4-name', t('step4Name'));
+  setText('step4-desc', t('step4Desc'));
+  setText('step5-name', t('step5Name'));
+  setText('step5-desc', t('step5Desc'));
+  setText('step6-name', t('step6Name'));
+  setText('step6-desc', t('step6Desc'));
+
+  setText('btn-scan-full', t('btnScan'));
+  setText('btn-view-scanned', t('btnViewScanned'));
+  setText('scanModeAlbumsBtn', t('scanModeAlbums'));
+  setText('scanModeAllBtn', t('scanModeAll'));
+  setText('btn-match', t('btnMatch'));
+  setText('btn-view-unmatched', t('btnViewUnmatched'));
+  setText('btn-download-direct', t('btnDownloadDirect'));
+  setText('viewer-close-btn', t('viewerClose'));
+  const vsearch = document.getElementById('viewer-search');
+  if (vsearch) vsearch.placeholder = t('viewerSearch');
+  setText('btn-trash-reupload', t('btnTrash'));
+  setText('btn-push', t('btnPush'));
+  setText('btn-verify', t('btnVerify'));
+  setText('btn-view-unverified', t('btnViewUnverified'));
+  setText('btn-verify-reset', t('btnVerifyReset'));
+  setText('btn-restore-albums', t('btnRestore'));
+  setText('btn-cleanup-pixel', t('btnCleanup'));
+  setText('btn-reset-all', t('btnResetAll'));
+  const resetAllBtn = document.getElementById('btn-reset-all');
+  if (resetAllBtn) resetAllBtn.title = t('btnResetAllTitle');
+
+  setText('chk-empty-trash-label', t('chkEmptyTrash'));
+  setText('lbl-concurrency', t('lblConcurrency'));
+  const stopBtn = document.getElementById('btn-stop-trash');
+  if (stopBtn && !stopBtn.disabled) stopBtn.textContent = t('btnStop');
+  const refreshBtn = document.getElementById('btn-refresh-status');
+  if (refreshBtn) refreshBtn.title = t('refreshTitle');
+  const cdpBadge = document.getElementById('cdpBadge');
+  if (cdpBadge) cdpBadge.title = t('badgeCdpTitle');
+  const adbBadge = document.getElementById('adbBadge');
+  if (adbBadge) adbBadge.title = t('badgeAdbTitle');
+  setText('log-title', t('logTitle'));
+  setText('btn-clear-log', t('logClear'));
+  setText('btn-save-log', t('logSave'));
+  const toggleAlbumsBtn = document.getElementById('btn-toggle-albums');
+  if (toggleAlbumsBtn) toggleAlbumsBtn.title = toggleAlbumsBtn.textContent === '▸' ? t('expandTitle') : t('collapseTitle');
+  const toggleLogBtn = document.getElementById('btn-toggle-log');
+  if (toggleLogBtn) toggleLogBtn.title = toggleLogBtn.textContent === '▴' ? t('expandTitle') : t('collapseTitle');
+
+  if (!albums.length) {
+    const list = document.getElementById('albumList');
+    if (list) list.innerHTML = `<div class="empty">${t('albumsEmpty')}</div>`;
+  }
+
+  buildPopups();
+}
+
+// ── Popup ─────────────────────────────────────────────────────────────────────
+
+function showPopup(id) {
+  const p = POPUPS[id];
+  if (!p) return;
+  document.getElementById('popup-title').textContent = p.title;
+  document.getElementById('popup-body').innerHTML = p.body;
+  document.getElementById('popup-footer').innerHTML = `<button class="small primary" onclick="closePopup()">${t('gotIt')}</button>`;
+  modalDismissable = true;
+  document.getElementById('popup-overlay').style.display = 'flex';
+}
+
+function showModal({ title, body, buttons }) {
+  document.getElementById('popup-title').textContent = title;
+  document.getElementById('popup-body').innerHTML = body;
+  const footer = document.getElementById('popup-footer');
+  footer.innerHTML = '';
+  for (const btn of buttons) {
+    const el = document.createElement('button');
+    el.className = `small ${btn.cls || ''}`;
+    el.style.marginLeft = '8px';
+    el.textContent = btn.text;
+    el.onclick = () => { closePopup(); if (btn.action) btn.action(); };
+    footer.appendChild(el);
+  }
+  modalDismissable = false;
+  document.getElementById('popup-overlay').style.display = 'flex';
+}
+
+function closePopup() {
+  document.getElementById('popup-overlay').style.display = 'none';
+}
+
+document.getElementById('popup-overlay').addEventListener('click', function(e) {
+  if (e.target === this && modalDismissable) closePopup();
+});
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && modalDismissable) closePopup(); });
+
+// ── SSE ───────────────────────────────────────────────────────────────────────
+
+function connectSSE() {
+  if (sse) sse.close();
+  sse = new EventSource(`${API}/api/events`);
+  sse.onmessage = (e) => {
+    const msg = JSON.parse(e.data);
+    if (msg.type === 'log') appendLog(msg.text, msg.level);
+    if (msg.type === 'stats') { updateStats(msg.stats); refreshOpenViewerIfNeeded(); }
+    if (msg.type === 'opStart') {
+      currentOp = msg.name;
+      setStepRunning(msg.name);
+      updateButtonStates();
+      appendLog(`▶ ${msg.name}`, 'op');
+    }
+    if (msg.type === 'opEnd') {
+      currentOp = null;
+      setStepDone(msg.name, msg.ok);
+      updateButtonStates();
+      if (msg.summary) appendLog(msg.ok ? `✓ ${msg.name}: ${msg.summary}` : `✗ ${msg.name}: ${msg.summary}`, msg.ok ? 'success' : 'error');
+      if (msg.name === 'switch-account' || msg.name === 'open-account-tabs') {
+        // Re-resolve account/email info now that the switch (or the initial multi-tab open)
+        // has actually landed, instead of guessing at a fixed delay.
+        refreshStatus();
+      }
+      if (msg.name === 'trash-reupload' && awaitingPixelRestore) {
+        awaitingPixelRestore = false;
+        showModal({
+          title: t('modalAfterTrashTitle'),
+          body: t('modalAfterTrashBody'),
+          buttons: [{ text: t('modalAfterTrashClose'), cls: 'primary', action: () => {} }],
+        });
+      }
+      if (msg.name === 'cleanup-pixel' && msg.ok) {
+        showModal({
+          title: t('modalAfterCleanupTitle'),
+          body: t('modalAfterCleanupBody'),
+          buttons: [{ text: t('modalAfterCleanupClose'), cls: 'primary', action: () => {} }],
+        });
+      }
+      if (msg.name === 'reset-all' && msg.ok) {
+        // A step marked 'done' is normally sticky against stats-driven resets (see
+        // updateStepDoneFromStats) — that's wrong here, since this is a deliberate full wipe.
+        manifestStats = {};
+        for (let n = 1; n <= 6; n++) {
+          const el = document.getElementById(`snum-${n}`);
+          if (el) { el.className = 'step-num'; el.textContent = String(n); }
+        }
+        updateButtonStates();
+      }
+    }
+  };
+  sse.onerror = () => { setTimeout(connectSSE, 3000); };
+}
+
+// ── Step indicators ───────────────────────────────────────────────────────────
+
+const OP_TO_STEP = {
+  'scan-full': 1,
+  'match': 2,
+  'trash-reupload': 3,
+  'verify': 4,
+  'restore-albums': 5,
+  'cleanup-pixel': 6,
+};
+
+function getStepNum(opName) { return OP_TO_STEP[opName]; }
+
+function setStepRunning(opName) {
+  const n = getStepNum(opName);
+  if (!n) return;
+  const el = document.getElementById(`snum-${n}`);
+  if (el) { el.className = 'step-num running'; el.textContent = '●'; }
+}
+
+function setStepDone(opName, ok) {
+  const n = getStepNum(opName);
+  if (!n) return;
+  const el = document.getElementById(`snum-${n}`);
+  if (el) { el.className = `step-num ${ok ? 'done' : 'error'}`; el.textContent = ok ? '✓' : '✗'; }
+}
+
+// ── Status ────────────────────────────────────────────────────────────────────
+
+async function refreshStatus() {
+  try {
+    const r = await fetch(`${API}/api/status`).then(r => r.json());
+    const cdp = document.getElementById('cdpBadge');
+    cdp.className = `badge ${!r.cdpConnected ? 'bad' : r.accountMismatch ? 'warn' : 'ok'}`;
+    const cdpText = r.cdpConnected
+      ? (r.accountEmail ? `CDP (${r.accountEmail})` : (r.account && r.account !== '/' ? `CDP ${r.account}` : 'CDP'))
+      : 'CDP';
+    document.getElementById('cdpLabel').textContent = cdpText;
+    cdp.title = r.accountMismatch
+      ? `Warning: pinned account ${r.selectedAccount} doesn't match the connected tab (${r.account || '?'}) — operations will refuse to run until this is resolved. Click to learn about CDP.`
+      : t('badgeCdpTitle');
+    updateAccountSwitcher(r);
+    const adbBadge = document.getElementById('adbBadge');
+    if (r.adbBinaryFound === false) {
+      adbBadge.className = 'badge bad';
+      adbBadge.title = 'ADB binary not found in adb/ folder';
+      if (!adbBinaryWarnShown) {
+        adbBinaryWarnShown = true;
+        appendLog(t('adbNotFound'), 'warn');
+      }
+    } else {
+      adbBadge.className = `badge ${r.adbConnected ? 'ok' : 'warn'}`;
+      adbBadge.title = '';
+    }
+    adbBadge.innerHTML = `<div class="dot"></div> ADB`;
+    updateAdbDeviceSelect(r.adbDevices || []);
+    if (r.manifest) updateStats(r.manifest);
+    if (r.workDir) document.getElementById('workDirLabel').textContent = t('workDirLabel', r.workDir);
+    if (r.downloadsDir) document.getElementById('downloadsLabel').textContent = t('downloadsLabel', r.downloadCount ?? 0);
+    currentOp = r.currentOp || null;
+    updateButtonStates();
+  } catch {}
+}
+
+function updateAccountSwitcher(r) {
+  const sel = document.getElementById('accountSwitchSelect');
+  if (!sel) return;
+  if (!sel.dataset.baseTitle) sel.dataset.baseTitle = sel.title;
+  if (!r.cdpConnected) { sel.style.display = 'none'; return; }
+  const known = r.knownEmails || {};
+  for (const opt of sel.options) {
+    const email = known[opt.value];
+    opt.textContent = email ? `${opt.value} (${email})` : opt.value;
+  }
+  // Prefer the pinned account once one exists — that's what ops actually enforce — falling
+  // back to whatever the connected tab reports when nothing's pinned yet.
+  const target = r.selectedAccount || r.account;
+  if (target && [...sel.options].some(o => o.value === target)) sel.value = target;
+  sel.style.display = '';
+  sel.disabled = !!r.currentOp;
+  sel.title = r.accountMismatch
+    ? `Pinned to ${r.selectedAccount}, but the connected tab is on ${r.account || '?'} — operations will refuse to run until this matches. Switch again, or close the mismatched tab.`
+    : sel.dataset.baseTitle || sel.title;
+}
+
+async function onAccountSwitch() {
+  const sel = document.getElementById('accountSwitchSelect');
+  if (!sel || !sel.value || currentOp) return;
+  const path = sel.value;
+  appendLog(`Switching to account ${path}...`, 'info');
+  const r = await post('/api/switch-account', { path });
+  if (r.error) appendLog(`Error: ${r.error}`, 'error');
+  // No fixed-delay refreshStatus() here — switch-account is queued (returns as soon as it's
+  // dispatched, not once it's done) and takes ~3s+ internally (navigate, then a fixed 3s wait,
+  // then confirm). A blind short timeout used to poll status while the switch was still
+  // mid-navigation, resolving (and caching) a stale/failed account email. The SSE 'opEnd'
+  // handler below calls refreshStatus() once the switch has actually finished instead.
+}
+
+function updateAdbDeviceSelect(devices) {
+  const sel = document.getElementById('adbDeviceSelect');
+  if (!sel) return;
+  const usable = devices.filter(d => d.state === 'device');
+  const notReady = devices.filter(d => d.state !== 'device');
+
+  // No usable devices at all — nothing to show.
+  if (usable.length === 0) {
+    sel.style.display = 'none';
+    if (selectedAdbDevice) {
+      selectedAdbDevice = null;
+      try { localStorage.removeItem('adbDevice'); } catch {}
+    }
+    // A device plugged in but stuck at 'unauthorized'/'offline' won't count toward the
+    // selector — without this, that looks identical to "no device detected at all".
+    if (notReady.length > 0 && !adbUnauthorizedWarnShown) {
+      adbUnauthorizedWarnShown = true;
+      const states = notReady.map(d => `${d.serial} (${d.state})`).join(', ');
+      appendLog(t('adbDeviceNotReady', states), 'warn');
+    } else if (notReady.length === 0) {
+      adbUnauthorizedWarnShown = false;
+    }
+    return;
+  }
+  adbUnauthorizedWarnShown = false;
+
+  // Selection no longer among connected devices — reset it.
+  if (selectedAdbDevice && !usable.some(d => d.serial === selectedAdbDevice)) {
+    selectedAdbDevice = null;
+    try { localStorage.removeItem('adbDevice'); } catch {}
+  }
+
+  // Show the name/IP even with just one device — same as the multi-device case — but only
+  // treat it as an actual *selection* once there's more than one to choose between; with a
+  // single device the backend's own no-`device`-given fallback already targets it correctly.
+  const optionsHtml = usable.map(d => {
+    const label = d.model ? `${d.model} (${d.serial})` : d.serial;
+    return `<option value="${d.serial}">${label}</option>`;
+  }).join('');
+  if (sel.innerHTML !== optionsHtml) sel.innerHTML = optionsHtml;
+  sel.value = selectedAdbDevice || usable[0].serial;
+  selectedAdbDevice = usable.length > 1 ? sel.value : null;
+  sel.disabled = usable.length < 2;
+  sel.style.display = '';
+}
+
+function onAdbDeviceChange() {
+  const sel = document.getElementById('adbDeviceSelect');
+  if (!sel) return;
+  selectedAdbDevice = sel.value || null;
+  try {
+    if (selectedAdbDevice) localStorage.setItem('adbDevice', selectedAdbDevice);
+    else localStorage.removeItem('adbDevice');
+  } catch {}
+}
+
+function updateStats(s) {
+  if (!s) return;
+  manifestStats = s;
+  const set = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val ?? '—'; };
+  set('sTotal', s.total);
+  set('sQuota', s.quota);
+  set('sDownloaded', s.downloaded);
+  set('sEnriched', s.enriched);
+  set('sAlbumsSaved', s.albumsSaved);
+  set('sTrashed', s.trashed);
+  set('sVerified', s.verified);
+  set('sRestored', s.restored);
+  updateStepStats(s);
+  updateStepDoneFromStats(s);
+  updateButtonStates();
+}
+
+function updateStepDoneFromStats(s) {
+  // Reset all steps to their number first, then re-apply done state. Steps already marked
+  // 'done' are left alone here — a step can finish successfully with zero items affected
+  // (e.g. "No items to restore into albums or re-archive"), and opEnd's own stats broadcast
+  // fires right after opEnd itself; re-deriving done-ness from a count here would immediately
+  // stomp the checkmark opEnd just set. A step only leaves 'done' by running again (which
+  // unconditionally switches it to 'running') or via an explicit manifest reset.
+  [1, 2, 3, 4, 5].forEach(n => {
+    const el = document.getElementById(`snum-${n}`);
+    if (!el || el.classList.contains('running') || el.classList.contains('error') || el.classList.contains('done')) return;
+    el.className = 'step-num';
+    el.textContent = String(n);
+  });
+  const markDone = (n) => {
+    const el = document.getElementById(`snum-${n}`);
+    if (!el || el.classList.contains('running') || el.classList.contains('error')) return;
+    el.className = 'step-num done';
+    el.textContent = '✓';
+  };
+  if ((s.quota ?? 0) > 0) markDone(1);
+  if ((s.downloaded ?? 0) > 0 && s.downloaded >= s.quota) markDone(2);
+  if ((s.trashed ?? 0) > 0) markDone(3);
+  if ((s.verified ?? 0) > 0) markDone(4);
+  if ((s.restored ?? 0) > 0) markDone(5);
+}
+
+function updateStepStats(s) {
+  const setStat = (id, text, cls = '') => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.textContent = text;
+    el.className = `step-stat${cls ? ' ' + cls : ''}`;
+  };
+  const sel = getSelectedAlbumIds();
+  const mode = scanMode;
+
+  // Merged "Select Albums" + "Scan & Prepare" into one status line: which source (albums or
+  // full library) feeds the scan, and whether that scan has found anything yet.
+  if (mode === 'all') {
+    setStat('sstat-1', s.quota > 0 ? `${t('step1ScanAll')} — ${t('scanQuotaFound', s.quota)}` : `${t('step1ScanAll')} — ${t('scanReadyToScan')}`, s.quota > 0 ? '' : 'pending');
+  } else if (sel.length > 0) {
+    setStat('sstat-1', s.quota > 0 ? `${t('step1Ready', sel.length)} — ${t('scanQuotaFound', s.quota)}` : `${t('step1Ready', sel.length)} — ${t('scanReadyToScan')}`, s.quota > 0 ? '' : 'pending');
+  } else {
+    setStat('sstat-1', t('step1Pending'), 'pending');
+  }
+
+  if (s.downloaded > 0 && s.quota > 0) {
+    const cls = s.downloaded >= s.quota ? '' : 'warn';
+    setStat('sstat-2', t('step2Done', s.downloaded, s.quota), cls);
+  } else if (s.quota > 0) setStat('sstat-2', t('step2Pending2'), 'pending');
+  else setStat('sstat-2', t('step2Pending1'), 'pending');
+
+  if (s.trashed > 0) setStat('sstat-3', t('step3Done', s.trashed));
+  else if (s.downloaded > 0) setStat('sstat-3', t('step3Pending2', s.downloaded));
+  else setStat('sstat-3', t('step3Pending1'), 'pending');
+
+  if (s.verified > 0) setStat('sstat-4', t('step4Done', s.verified, s.trashed || s.quota));
+  else if (s.trashed > 0) setStat('sstat-4', t('step4Pending2'), 'pending');
+  else setStat('sstat-4', t('step4Pending1'), 'pending');
+
+  if (s.restored > 0) setStat('sstat-5', t('step5Done', s.restored));
+  else if (s.verified > 0) setStat('sstat-5', t('step5Pending2', s.verified));
+  else setStat('sstat-5', t('step5Pending1'), 'pending');
+
+  if (s.trashed > 0) setStat('sstat-6', t('step6Ready', s.trashed));
+  else setStat('sstat-6', t('step6Pending'), 'pending');
+}
+
+function updateButtonStates() {
+  const busy = !!currentOp;
+  const s = manifestStats;
+  const sel = getSelectedAlbumIds();
+  const mode = scanMode;
+
+  const setBtn = (id, enabled) => {
+    const el = document.getElementById(id);
+    if (el) el.disabled = busy || !enabled;
+  };
+
+  setBtn('btn-scan-full', mode === 'all' || sel.length > 0);
+  setBtn('btn-view-scanned', (s.quota ?? 0) > 0);
+  setBtn('btn-match', (s.quota ?? 0) > 0);
+  setBtn('btn-view-unmatched', (s.quota ?? 0) > 0);
+  setBtn('btn-download-direct', (s.quota ?? 0) > (s.downloaded ?? 0));
+  setBtn('btn-trash-reupload', (s.downloaded ?? 0) > 0);
+  setBtn('btn-push', (s.downloaded ?? 0) > 0);
+  const repushBtn = document.getElementById('btn-repush');
+  if (repushBtn) {
+    const showRepush = (s.trashed ?? 0) > 0;
+    repushBtn.style.display = showRepush ? 'inline-block' : 'none';
+    repushBtn.disabled = busy || !showRepush;
+  }
+  // Verify only needs *something scanned* to check for — not the trash/reupload step to have
+  // run — since it also doubles as a plain cross-account presence check (scan account A, switch
+  // to account B, verify). Only grey it out when there's truly nothing to verify.
+  setBtn('btn-verify', (s.total ?? 0) > 0 && (s.quota ?? 0) > 0);
+  setBtn('btn-verify-reset', (s.total ?? 0) > 0 && (s.quota ?? 0) > 0);
+  // Matches computeViewerItems('unverified'): consumesQuota && verified !== true — not just
+  // reuploadComplete ones, since verify itself now covers plain scanned items too.
+  setBtn('btn-view-unverified', (s.quota ?? 0) > (s.verified ?? 0));
+  const acctSel = document.getElementById('accountSwitchSelect');
+  if (acctSel && acctSel.style.display !== 'none') acctSel.disabled = busy;
+  setBtn('btn-restore-albums', (s.verified ?? 0) > 0);
+  setBtn('btn-cleanup-pixel', (s.trashed ?? 0) > 0);
+  setBtn('btn-reset-all', true); // only greyed out via the shared busy flag while a reset (or any op) is running
+
+  const stopBtn = document.getElementById('btn-stop-trash');
+  if (stopBtn) {
+    stopBtn.style.display = currentOp === 'trash-reupload' ? 'inline-block' : 'none';
+    stopBtn.disabled = false;
+    stopBtn.textContent = t('btnStop');
+  }
+
+  if (!busy) {
+    setStepReady(1, sel.length > 0 || mode === 'all');
+    setStepReady(2, (s.quota ?? 0) > 0);
+    setStepReady(3, (s.downloaded ?? 0) > 0);
+    setStepReady(4, (s.trashed ?? 0) > 0);
+    setStepReady(5, (s.verified ?? 0) > 0);
+    setStepReady(6, (s.trashed ?? 0) > 0);
+  }
+}
+
+function setStepReady(n, ready) {
+  const el = document.getElementById(`snum-${n}`);
+  if (!el || el.classList.contains('done') || el.classList.contains('running') || el.classList.contains('error')) return;
+  el.className = `step-num${ready ? ' ready' : ''}`;
+  el.textContent = String(n);
+}
+
+// ── Albums ────────────────────────────────────────────────────────────────────
+
+async function loadAlbums() {
+  const btn = document.getElementById('loadAlbumsBtn');
+  btn.dataset.loading = '1';
+  btn.textContent = '...';
+  btn.disabled = true;
+  try {
+    const r = await fetch(`${API}/api/albums`).then(r => r.json());
+    if (r.error) {
+      document.getElementById('albumList').innerHTML = `<div class="empty" style="color:var(--error)">${r.error}</div>`;
+      appendLog(t('albumsError', r.error), 'error');
+      return;
+    }
+    albums = r.albums || [];
+    renderAlbums();
+    appendLog(t('albumsLoaded', albums.length), 'success');
+  } catch (err) {
+    document.getElementById('albumList').innerHTML = `<div class="empty" style="color:var(--error)">${t('albumsFailed', err.message)}</div>`;
+    appendLog(t('albumsFailed', err.message), 'error');
+  } finally {
+    delete btn.dataset.loading;
+    btn.textContent = t('reload');
+    btn.disabled = false;
+  }
+}
+
+function renderAlbums() {
+  const list = document.getElementById('albumList');
+  if (!albums.length) {
+    list.innerHTML = `<div class="empty">${t('albumsNone')}</div>`;
+    return;
+  }
+  list.innerHTML = albums.map(a => {
+    let countHtml = '';
+    if (a.quotaCount > 0) {
+      const nonQuota = a.count != null ? a.count - a.quotaCount : null;
+      countHtml = `<span class="album-count"><span class="album-quota-badge">${a.quotaCount}</span>${nonQuota != null ? nonQuota : ''}</span>`;
+    } else if (a.count != null) {
+      countHtml = `<span class="album-count">${a.count}</span>`;
+    }
+    return `
+    <label class="album-item" for="alb-${a.albumId}">
+      <input type="checkbox" class="custom-chk" id="alb-${a.albumId}" value="${a.albumId}" onchange="onAlbumChange()">
+      <span class="album-name" title="${a.title}">${a.title}</span>
+      ${countHtml}
+    </label>`;
+  }).join('');
+  onAlbumChange();
+}
+
+function onAlbumChange() {
+  const sel = getSelectedAlbumIds();
+  const selCountEl = document.getElementById('selCount');
+  selCountEl.textContent = sel.length > 0 ? t('selectedCount', sel.length) : '';
+  updateStepStats(manifestStats);
+  updateButtonStates();
+}
+
+function getSelectedAlbumIds() {
+  return Array.from(document.querySelectorAll('#albumList input[type=checkbox]:checked')).map(c => c.value);
+}
+
+function selectAll() { document.querySelectorAll('#albumList input[type=checkbox]').forEach(c => c.checked = true); onAlbumChange(); }
+function selectNone() { document.querySelectorAll('#albumList input[type=checkbox]').forEach(c => c.checked = false); onAlbumChange(); }
+
+// ── Operations ────────────────────────────────────────────────────────────────
+
+async function post(path, body = {}) {
+  const r = await fetch(`${API}${path}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+  return r.json();
+}
+
+function adbDeviceBody() {
+  return selectedAdbDevice ? { device: selectedAdbDevice } : {};
+}
+
+async function runOp(name) {
+  if (currentOp) return;
+  const r = await post(`/api/${name}`, adbDeviceBody());
+  if (r.error) appendLog(`Error: ${r.error}`, 'error');
+}
+
+async function runScanFull() {
+  const ids = getSelectedAlbumIds();
+  if (scanMode !== 'all' && !ids.length) return;
+  const r = await post('/api/scan-full', scanMode === 'all' ? {} : { albumIds: ids });
+  if (r.error) appendLog(`Error: ${r.error}`, 'error');
+}
+
+function setScanMode(mode) {
+  if (mode !== 'albums' && mode !== 'all') return;
+  scanMode = mode;
+  document.querySelectorAll('#scanModeToggle .scan-mode-option').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.mode === mode);
+  });
+  updateStepStats(manifestStats);
+  updateButtonStates();
+}
+
+async function runTrashReupload() {
+  if (currentOp) return;
+  const emptyTrash = document.getElementById('chk-empty-trash').checked;
+  const concurrency = parseInt(document.getElementById('inp-concurrency').value, 10) || 3;
+  const emptyTrashWarning = emptyTrash ? t('modalTrashEmptyWarning') : '';
+  showModal({
+    title: t('modalTrashTitle'),
+    body: t('modalTrashBody', emptyTrashWarning),
+    buttons: [
+      { text: t('modalTrashCancel'), cls: '', action: () => {} },
+      { text: t('modalTrashConfirm'), cls: 'primary danger', action: async () => {
+        awaitingPixelRestore = true;
+        const r = await post('/api/trash-reupload', { emptyTrash, concurrency, ...adbDeviceBody() });
+        if (r.error) appendLog(`Error: ${r.error}`, 'error');
+      }},
+    ],
+  });
+}
+
+async function runRepush() {
+  if (currentOp) return;
+  const concurrency = parseInt(document.getElementById('inp-concurrency').value, 10) || 3;
+  const r = await post('/api/repush', { concurrency, ...adbDeviceBody() });
+  if (r.error) appendLog(`Error: ${r.error}`, 'error');
+}
+
+async function runPush() {
+  if (currentOp) return;
+  const concurrency = parseInt(document.getElementById('inp-concurrency').value, 10) || 3;
+  const r = await post('/api/push', { concurrency, ...adbDeviceBody() });
+  if (r.error) appendLog(`Error: ${r.error}`, 'error');
+}
+
+async function stopTrashReupload() {
+  const btn = document.getElementById('btn-stop-trash');
+  if (btn) { btn.disabled = true; btn.textContent = t('btnStopping'); }
+  await post('/api/stop');
+}
+
+async function matchAlbums() {
+  const r = await post('/api/match', {});
+  if (r.error) appendLog(`Error: ${r.error}`, 'error');
+}
+
+async function runDownload() {
+  if (currentOp) return;
+  const r = await post('/api/download', {});
+  if (r.error) appendLog(`Error: ${r.error}`, 'error');
+}
+
+async function downloadViewerItems() {
+  if (currentOp) return;
+  const rows = _viewerFiltered.length ? _viewerFiltered : _viewerItems;
+  const mediaKeys = rows.filter(i => i.mediaKey && !i.downloaded).map(i => i.mediaKey);
+  if (!mediaKeys.length) return;
+  const concurrency = parseInt(document.getElementById('inp-concurrency')?.value, 10) || 3;
+  const r = await post('/api/download', { concurrency, mediaKeys });
+  if (r.error) appendLog(`Error: ${r.error}`, 'error');
+}
+
+async function resetManifest() {
+  if (!confirm(t('confirmReset'))) return;
+  await post('/api/reset-manifest');
+  manifestStats = {};
+  for (let n = 1; n <= 6; n++) {
+    const el = document.getElementById(`snum-${n}`);
+    if (el) { el.className = 'step-num'; el.textContent = String(n); }
+  }
+  updateButtonStates();
+  appendLog(t('manifestReset'), 'warn');
+}
+
+async function resetVerify() {
+  if (currentOp) return;
+  if (!confirm(t('confirmResetVerify'))) return;
+  const r = await post('/api/reset-verify');
+  if (r.error) appendLog(`Error: ${r.error}`, 'error');
+}
+
+async function resetAll() {
+  if (currentOp) return;
+  showModal({
+    title: t('modalResetAllTitle'),
+    body: t('modalResetAllBody'),
+    buttons: [
+      { text: t('modalResetAllCancel'), cls: '', action: () => {} },
+      { text: t('modalResetAllConfirm'), cls: 'primary danger', action: async () => {
+        const r = await post('/api/reset-all');
+        if (r.error) appendLog(`Error: ${r.error}`, 'error');
+        // Step indicators are reset once opEnd for 'reset-all' actually arrives via SSE,
+        // not here — this POST only queues the operation.
+      }},
+    ],
+  });
+}
+
+async function launchChrome() {
+  const btn = document.getElementById('launchChromeBtn');
+  btn.dataset.loading = '1';
+  btn.disabled = true;
+  btn.textContent = '...';
+  try {
+    const r = await post('/api/launch-chrome');
+    if (r.error) { appendLog(t('chromeFailed', r.error), 'error'); return; }
+    appendLog(t('chromeLaunched', r.profileDir), 'success');
+    setTimeout(() => { refreshStatus(); loadChromeInfo(); }, 3000);
+    // Backend waits for Chrome's debug port itself, then probes /u/0/, /u/1/, ... for
+    // signed-in accounts, opens one confirmed tab per account, and closes whatever Photos
+    // tab(s) existed before (including the bare bootstrap tab launch-chrome just opened) —
+    // progress streams in via the normal opStart/log/opEnd SSE events.
+    const tabsResult = await post('/api/open-account-tabs');
+    if (tabsResult.error) appendLog(`Error: ${tabsResult.error}`, 'error');
+  } finally {
+    delete btn.dataset.loading;
+    btn.disabled = false;
+    btn.textContent = t('launchChrome');
+  }
+}
+
+async function deleteProfile() {
+  const info = await fetch(`${API}/api/chrome-info`).then(r => r.json());
+  const label = info.sizeMb != null ? ` (~${info.sizeMb} MB)` : '';
+  if (!confirm(t('confirmDeleteProfile', label, info.profileDir))) return;
+  const r = await post('/api/delete-profile');
+  if (r.error) { appendLog(t('profileDeleteFailed', r.error), 'error'); return; }
+  appendLog(t('profileDeleted', r.deleted), 'warn');
+  loadChromeInfo();
+}
+
+async function loadChromeInfo() {
+  try {
+    const r = await fetch(`${API}/api/chrome-info`).then(r => r.json());
+    chromeProfileSizeMb = r.sizeMb ?? null;
+    const btn = document.getElementById('deleteProfileBtn');
+    if (r.exists) {
+      const label = r.sizeMb != null ? ` (${r.sizeMb} MB)` : '';
+      btn.textContent = `${t('deleteProfile')}${label}`;
+      btn.style.display = '';
+    } else {
+      chromeProfileSizeMb = null;
+      btn.style.display = 'none';
+    }
+  } catch {}
+}
+
+// ── Log ───────────────────────────────────────────────────────────────────────
+
+// Kept separately from the DOM (which caps at 2000 rendered rows for performance) so Save
+// can still export the full session log, not just what's currently visible on screen.
+let logHistory = [];
+
+function appendLog(text, level = 'info') {
+  const out = document.getElementById('logOutput');
+  const div = document.createElement('div');
+  div.className = `log-${level}`;
+  div.textContent = text;
+  out.appendChild(div);
+  if (out.children.length > 2000) out.removeChild(out.firstChild);
+  out.scrollTop = out.scrollHeight;
+
+  logHistory.push(text);
+  if (logHistory.length > 20000) logHistory.shift();
+}
+
+function clearLog() {
+  document.getElementById('logOutput').innerHTML = '';
+  logHistory = [];
+}
+
+async function saveLog() {
+  if (!logHistory.length) return;
+  const content = logHistory.join('\n') + '\n';
+  const filename = `gphotos-log-${new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19)}.txt`;
+
+  // File System Access API lets the user pick the exact save location (Chrome/Edge, which
+  // this app already depends on for CDP). Falls back to a plain download for other browsers.
+  if (window.showSaveFilePicker) {
+    try {
+      const handle = await window.showSaveFilePicker({
+        suggestedName: filename,
+        types: [{ description: 'Text file', accept: { 'text/plain': ['.txt'] } }],
+      });
+      const writable = await handle.createWritable();
+      await writable.write(content);
+      await writable.close();
+      appendLog(t('logSaved'), 'success');
+      return;
+    } catch (err) {
+      if (err.name === 'AbortError') return; // user cancelled the picker
+      // fall through to the download fallback below
+    }
+  }
+  const blob = new Blob([content], { type: 'text/plain' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  appendLog(t('logSaved'), 'success');
+}
+
+// ── Collapsible panels ──────────────────────────────────────────────────────────
+
+function toggleAlbumsSidebar() {
+  const main = document.querySelector('main');
+  const collapsed = main.classList.toggle('sidebar-collapsed');
+  const btn = document.getElementById('btn-toggle-albums');
+  if (btn) { btn.textContent = collapsed ? '▸' : '◂'; btn.title = collapsed ? t('expandTitle') : t('collapseTitle'); }
+  try { localStorage.setItem('albumsSidebarCollapsed', collapsed ? '1' : '0'); } catch {}
+}
+
+function toggleLogPanel() {
+  const main = document.querySelector('main');
+  const collapsed = main.classList.toggle('log-collapsed');
+  const btn = document.getElementById('btn-toggle-log');
+  if (btn) { btn.textContent = collapsed ? '▴' : '▾'; btn.title = collapsed ? t('expandTitle') : t('collapseTitle'); }
+  try { localStorage.setItem('logPanelCollapsed', collapsed ? '1' : '0'); } catch {}
+}
+
+function restorePanelCollapseState() {
+  const main = document.querySelector('main');
+  let albumsStored = null, logCollapsed = false;
+  try {
+    albumsStored = localStorage.getItem('albumsSidebarCollapsed');
+    logCollapsed = localStorage.getItem('logPanelCollapsed') === '1';
+  } catch {}
+  if (albumsStored === '1') {
+    main.classList.add('sidebar-collapsed');
+    const btn = document.getElementById('btn-toggle-albums');
+    if (btn) { btn.textContent = '▸'; btn.title = t('expandTitle'); }
+  } else if (albumsStored === null) {
+    // No saved preference yet — first time this app has ever loaded in this browser. Leave the
+    // Albums sidebar open so it gets noticed, then auto-collapse it after 5s. A manual toggle
+    // before then cancels the timer and stands as the user's real preference from here on;
+    // toggleAlbumsSidebar() itself persists the collapse, so this never fires again either way.
+    const btn = document.getElementById('btn-toggle-albums');
+    const timer = setTimeout(() => {
+      if (!main.classList.contains('sidebar-collapsed')) toggleAlbumsSidebar();
+    }, 5000);
+    btn?.addEventListener('click', () => clearTimeout(timer), { once: true });
+  }
+  if (logCollapsed) {
+    main.classList.add('log-collapsed');
+    const btn = document.getElementById('btn-toggle-log');
+    if (btn) { btn.textContent = '▴'; btn.title = t('expandTitle'); }
+  }
+}
+
+// ── Manifest Viewer ───────────────────────────────────────────────────────────
+
+let _viewerItems = [];
+// Which live list is currently open, so an incoming SSE 'stats' event (fired at the end of
+// every op, and mid-run by verify) can refresh the visible rows without the user re-clicking
+// View — e.g. items disappear from "not verified" as verify confirms them, live.
+let _viewerKind = null;
+// Currently-visible rows (after the search filter) — what "Download these" in the unverified
+// viewer actually targets, so narrowing the search narrows the download too.
+let _viewerFiltered = [];
+
+function computeViewerItems(kind, manifest) {
+  if (kind === 'scanned') return manifest.filter(i => i.consumesQuota);
+  if (kind === 'unmatched') return manifest.filter(i => i.consumesQuota && !i.downloaded);
+  // consumesQuota (not reuploadComplete) matches what /api/verify itself now checks — it also
+  // covers items verified via a cross-account presence check, not just this tool's own reupload.
+  if (kind === 'unverified') return manifest.filter(i => i.consumesQuota && i.verified !== true);
+  return [];
+}
+
+async function openViewerForKind(kind, title) {
+  const r = await fetch(`${API}/api/manifest`).then(r => r.json());
+  _viewerKind = kind;
+  openViewer(title, computeViewerItems(kind, r.manifest || []));
+}
+
+async function showScannedItems() { await openViewerForKind('scanned', t('viewerScannedTitle')); }
+async function showUnmatchedItems() { await openViewerForKind('unmatched', t('viewerUnmatchedTitle')); }
+async function showUnverifiedItems() { await openViewerForKind('unverified', t('viewerUnverifiedTitle')); }
+
+// Called on every SSE 'stats' event. Re-fetches and re-renders in place — keeps the search box
+// and scroll position untouched, unlike openViewer() (which is only for the initial open/click).
+async function refreshOpenViewerIfNeeded() {
+  if (!_viewerKind) return;
+  if (document.getElementById('viewer-overlay').style.display === 'none') { _viewerKind = null; return; }
+  const r = await fetch(`${API}/api/manifest`).then(r => r.json());
+  _viewerItems = computeViewerItems(_viewerKind, r.manifest || []);
+  const search = document.getElementById('viewer-search');
+  renderViewerItems(_viewerItems, (search?.value || '').toLowerCase());
+}
+
+function openViewer(title, items) {
+  _viewerItems = items;
+  document.getElementById('viewer-title').textContent = title;
+  const search = document.getElementById('viewer-search');
+  search.value = '';
+  search.oninput = () => renderViewerItems(_viewerItems, search.value.toLowerCase());
+  renderViewerItems(items, '');
+  document.getElementById('viewer-overlay').style.display = 'flex';
+  setTimeout(() => search.focus(), 50);
+}
+
+function renderViewerItems(items, query) {
+  const filtered = query
+    ? items.filter(i =>
+        (i.filename || '').toLowerCase().includes(query) ||
+        (i.albums || []).some(a => (a.albumTitle || '').toLowerCase().includes(query)))
+    : items;
+
+  const html = filtered.map(item => {
+    const fname = item.filename || item.mediaKey.slice(0, 20);
+    const isOq = item.isOriginalQuality;
+    const badge = `<span class="viewer-badge ${isOq ? 'oq' : 'ss'}">${isOq ? t('viewerOriginalQuality') : t('viewerStorageSaver')}</span>`;
+    const archiveBadge = item.isArchived ? `<span class="viewer-badge archived">${t('viewerArchived')}</span>` : '';
+    const sizeMb = item.sizeBytes ? `${(item.sizeBytes / 1048576).toFixed(1)} MB` : '';
+    const albums = item.albums?.length
+      ? item.albums.map(a => `<span class="viewer-tag">${escHtml(a.albumTitle || a.albumId)}</span>`).join('')
+      : `<span class="viewer-tag no-album">${t('viewerNoAlbum')}</span>`;
+    return `<div class="viewer-row">
+      <div class="viewer-info">
+        <div class="viewer-fname" title="${escHtml(fname)}">${escHtml(fname)}</div>
+        <div class="viewer-albums">${albums}</div>
+      </div>
+      <div class="viewer-meta">${badge}${archiveBadge}<span class="viewer-size">${sizeMb}</span></div>
+    </div>`;
+  }).join('');
+
+  document.getElementById('viewer-list').innerHTML = html || `<div class="empty">${escHtml(query ? t('viewerNoMatches') : t('viewerEmpty'))}</div>`;
+  document.getElementById('viewer-count').textContent = query
+    ? t('viewerCountFiltered', filtered.length, items.length)
+    : t('viewerCountAll', items.length);
+
+  _viewerFiltered = filtered;
+  const dlBtn = document.getElementById('viewer-download-btn');
+  if (dlBtn) {
+    if (_viewerKind === 'unverified') {
+      const need = filtered.filter(i => i.mediaKey && !i.downloaded).length;
+      dlBtn.style.display = '';
+      dlBtn.disabled = !!currentOp || need === 0;
+      dlBtn.textContent = t('viewerDownloadThese', need);
+    } else {
+      dlBtn.style.display = 'none';
+    }
+  }
+}
+
+function escHtml(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function closeViewer() {
+  document.getElementById('viewer-overlay').style.display = 'none';
+  _viewerKind = null;
+}
+
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeViewer(); });
+
+// ── Init ─────────────────────────────────────────────────────────────────────
+
+buildPopups();
+applyLang();
+restorePanelCollapseState();
+connectSSE();
+refreshStatus();
+loadChromeInfo();
+setInterval(refreshStatus, 10000);
+</script>
+</body>
+</html>

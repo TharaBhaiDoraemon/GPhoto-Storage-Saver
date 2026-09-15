@@ -1,0 +1,11 @@
+{
+  "name": "gphotos-recovery-gui",
+  "type": "module",
+  "version": "1.0.0",
+  "scripts": {
+    "start": "node server.mjs"
+  },
+  "dependencies": {
+    "ws": "^8.21.0"
+  }
+}

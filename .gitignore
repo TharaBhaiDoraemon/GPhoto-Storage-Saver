@@ -1,0 +1,24 @@
+# Dependencies
+node_modules/
+source/node_modules/
+
+# User downloaded media and temporary files
+downloads/*
+!downloads/.gitkeep
+!downloads/README.md
+
+# Scan metadata, manifests, and backups
+manifest.json
+manifest*.json
+*.bak*
+progress.json
+progress.backup.json
+quota-items-scan.json
+
+# Browser automation profile
+.browser-profile/
+
+# Operating system & editor files
+.DS_Store
+Thumbs.db
+*.log
