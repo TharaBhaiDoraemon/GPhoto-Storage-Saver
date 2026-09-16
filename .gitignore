@@ -23,18 +23,18 @@ quota-items-scan.json
 Thumbs.db
 *.log
 
-# Windows installer build artifacts (rebuild with installer/build.sh)
-installer/build/
-installer/dist/
+# Windows installer build artifacts (rebuild with Installer/installer/build.sh)
+Installer/installer/build/
+Installer/installer/dist/
 
-# Debian package build artifacts (rebuild with deb/build.sh)
-deb/build/
-deb/dist/
+# Debian package build artifacts (rebuild with Installer/deb/build.sh)
+Installer/deb/build/
+Installer/deb/dist/
 
-# AppImage build artifacts (rebuild with appimage/build.sh)
-appimage/build/
-appimage/dist/
+# AppImage build artifacts (rebuild with Installer/appimage/build.sh)
+Installer/appimage/build/
+Installer/appimage/dist/
 
-# macOS .app build artifacts (rebuild with mac/build.sh)
-mac/build/
-mac/dist/
+# macOS .app build artifacts (rebuild with Installer/mac/build.sh)
+Installer/mac/build/
+Installer/mac/dist/
