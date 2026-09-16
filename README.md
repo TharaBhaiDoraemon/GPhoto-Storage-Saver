@@ -192,3 +192,9 @@ The **Trash + Reupload** step is destructive and irreversible: it deletes items 
 before the Pixel has finished re-uploading them. Ensure you have reliable offline backups of your
 media before running it. If you'd rather avoid the destructive path entirely, use **Push**
 instead — it copies files to the Pixel without ever touching the cloud originals.
+
+---
+
+## License
+
+Licensed under the [GNU General Public License v3.0 or later](LICENSE).
