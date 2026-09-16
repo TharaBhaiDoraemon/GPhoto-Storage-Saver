@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Google Photos Quota Reclaim
+GenericName=Google Photos Storage Saver
+Comment=Reclaim Google Photos storage quota via a Pixel phone
+Exec=gphoto-storage-saver
+Terminal=true
+Categories=Utility;
+Icon=utilities-terminal

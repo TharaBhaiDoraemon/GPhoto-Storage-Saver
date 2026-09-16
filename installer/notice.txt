@@ -1,0 +1,23 @@
+IMPORTANT - PLEASE READ
+
+Google Photos Quota Reclaim automates re-uploading your media through a
+Google Pixel phone to reclaim Google Photos storage quota.
+
+The "Trash + Reupload" step is DESTRUCTIVE and IRREVERSIBLE: it deletes
+items from the cloud before the Pixel has finished re-uploading them.
+Ensure you have reliable offline backups of your media before running it.
+If you would rather avoid the destructive path entirely, use "Push"
+instead, which copies files to the Pixel without touching the cloud
+originals.
+
+This installer will place the application in your local user profile
+(no administrator rights required) and includes:
+  - The application itself (Node.js source, no compiled binaries)
+  - A bundled, portable Node.js runtime for Windows
+  - Android Platform Tools (adb.exe and related files) for talking to
+    a connected Pixel phone over USB
+
+You will still need Google Chrome (or Chromium) installed separately;
+the application launches it automatically with remote debugging enabled.
+
+Click "I Agree" to continue installing, or "Cancel" to exit.

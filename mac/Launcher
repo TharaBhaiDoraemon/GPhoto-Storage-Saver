@@ -1,0 +1,20 @@
+#!/bin/sh
+# Entry point run by macOS when the .app bundle is launched (double-click in
+# Finder, or executed directly from Terminal for visible log output).
+# App code + bundled node/adb are read-only inside the bundle; per-user state
+# (downloads/, manifest.json) lives under ~/Library/Application Support
+# instead, per macOS convention.
+set -e
+
+HERE="$(cd "$(dirname "$0")" && pwd)"
+APP_DIR="$HERE/../Resources/app"
+DATA_DIR="$HOME/Library/Application Support/GPhotoStorageSaver"
+
+mkdir -p "$DATA_DIR/downloads"
+export WORK_DIR="$DATA_DIR"
+# lib/adb.mjs falls back to `which adb` on PATH if it isn't found under
+# WORK_DIR/adb - prepending this dir makes it pick up the bundled adb.
+export PATH="$HERE:$PATH"
+
+cd "$APP_DIR"
+exec "$HERE/node" "$APP_DIR/server.mjs" "$@"

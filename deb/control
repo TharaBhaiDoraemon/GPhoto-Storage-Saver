@@ -1,0 +1,17 @@
+Package: gphoto-storage-saver
+Version: 1.0.0
+Section: utils
+Priority: optional
+Architecture: all
+Depends: nodejs (>= 18), adb
+Recommends: google-chrome-stable | chromium-browser | chromium
+Maintainer: TharaBhaiDoraemon <dhruvthanawala10@gmail.com>
+Homepage: https://github.com/TharaBhaiDoraemon/GPhoto-Storage-Saver
+Description: Reclaim Google Photos storage quota via a Pixel phone
+ A web-based GUI application that reclaims Google Photos storage quota by
+ re-uploading your media through a Google Pixel phone, which backs it up
+ quota-free. It drives an authenticated Chrome browser session (so it never
+ needs your password or an API key) and your Pixel over USB.
+ .
+ Warning: the Trash + Reupload step is destructive and irreversible. See
+ the app's README for details before using it.

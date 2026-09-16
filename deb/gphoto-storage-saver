@@ -1,0 +1,14 @@
+#!/bin/sh
+# Launcher for Google Photos Quota Reclaim.
+# App code is read-only under /usr/lib; per-user state (downloads/,
+# manifest.json) lives under the user's XDG data dir instead.
+set -e
+
+APP_DIR=/usr/lib/gphoto-storage-saver
+DATA_DIR="${XDG_DATA_HOME:-$HOME/.local/share}/gphoto-storage-saver"
+
+mkdir -p "$DATA_DIR/downloads"
+export WORK_DIR="$DATA_DIR"
+
+cd "$APP_DIR"
+exec node "$APP_DIR/server.mjs" "$@"

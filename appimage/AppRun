@@ -1,0 +1,18 @@
+#!/bin/sh
+# Entry point run by the AppImage runtime.
+# App code + bundled node/adb are read-only inside the mounted image; per-user
+# state (downloads/, manifest.json) lives under the user's XDG data dir instead.
+set -e
+
+HERE="$(CDPATH= cd -- "$(dirname -- "$(readlink -f -- "$0")")" && pwd)"
+APP_DIR="$HERE/usr/lib/gphoto-storage-saver"
+DATA_DIR="${XDG_DATA_HOME:-$HOME/.local/share}/gphoto-storage-saver"
+
+mkdir -p "$DATA_DIR/downloads"
+export WORK_DIR="$DATA_DIR"
+# lib/adb.mjs falls back to `which adb` on PATH if it isn't found under
+# WORK_DIR/adb - prepending usr/bin makes it pick up the bundled adb.
+export PATH="$HERE/usr/bin:$PATH"
+
+cd "$APP_DIR"
+exec "$HERE/usr/bin/node" "$APP_DIR/server.mjs" "$@"

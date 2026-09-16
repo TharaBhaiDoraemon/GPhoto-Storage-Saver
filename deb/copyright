@@ -1,0 +1,12 @@
+Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
+Upstream-Name: gphoto-storage-saver
+Source: https://github.com/TharaBhaiDoraemon/GPhoto-Storage-Saver
+
+Files: *
+Copyright: TharaBhaiDoraemon
+License: proprietary
+ All rights reserved. No license has been declared for this project; do not
+ redistribute without the author's permission.
+
+Comment: Android Debug Bridge platform-tools are not bundled in this
+ package; the "adb" Debian package is a runtime dependency instead.

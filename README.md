@@ -125,6 +125,54 @@ it's waiting on; the log panel streams progress for whichever step is currently 
 
 ---
 
+## Prebuilt Packages
+
+Instead of running from source, you can build a native package for your platform.
+Each is self-contained (bundles its own Node.js runtime except the `.deb`, which
+uses `apt` dependencies instead) and reproducible via its own `build.sh`:
+
+| Platform | Format | Build |
+|---|---|---|
+| Windows | `.exe` installer (NSIS) | [`installer/`](installer/) |
+| Debian / Ubuntu | `.deb` package | [`deb/`](deb/) |
+| Linux (any x86_64 distro) | `.AppImage` (portable, no install) | [`appimage/`](appimage/) |
+| macOS (Apple Silicon & Intel) | `.app` bundle, zipped | [`mac/`](mac/) |
+
+Each directory's `README.md` documents build requirements and layout; a step-by-step
+account of how each was built lives in `Windows EXE Readme.md`, `Linux DEB Readme.md`,
+`Linux AppImage Readme.md`, and `Mac App Readme.md` at the repo root. The macOS build
+is packaged from Linux and is unsigned — see `mac/README.md` for the Gatekeeper
+workaround needed on first launch.
+
+### Reproducibility — confirmed
+
+Every `build/` and `dist/` directory was wiped (simulating a completely fresh clone
+with no cached downloads) and all four `build.sh` scripts were rerun from scratch, in
+parallel:
+
+| Build | Result | Output |
+|---|---|---|
+| `installer/build.sh` | exit 0 | `GPhotoStorageSaver-Setup.exe` (28 MB) |
+| `deb/build.sh` | exit 0 | `gphoto-storage-saver_1.0.0_all.deb` (92 KB) |
+| `appimage/build.sh` | exit 0 | `GPhotoStorageSaver-x86_64.AppImage` (44 MB) |
+| `mac/build.sh` | exit 0 | `GPhotoStorageSaver-mac-{arm64,x64}.zip` (46/47 MB) |
+
+Each rebuilt cleanly using only what's declared in its own README's "Requires" line —
+nothing depended on leftover state from a prior build.
+
+### Consistency checks
+
+- Version `1.0.0` matches across the exe registry entry, deb control file, and mac
+  `Info.plist`.
+- App display name "Google Photos Quota Reclaim" matches across all four.
+- Bundled Node.js version (`v24.21.0`) matches across the exe, AppImage, and mac builds
+  — the three that bundle a runtime.
+- `.gitignore` uses one consistent `<dir>/build/` + `<dir>/dist/` pair per platform.
+- A full-repo `git add -n` dry run confirms only source scripts/config would ever be
+  staged — no binaries, no build output, across all four directories.
+
+---
+
 ## Documentation
 
 Detailed documentation is available in the [`source/docs/`](source/docs/) directory:
