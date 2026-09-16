@@ -11,7 +11,7 @@ set -euo pipefail
 
 NODE_VERSION="v24.21.0"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-ROOT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
+ROOT_DIR="$(cd "$SCRIPT_DIR/../.." && pwd)"
 BUILD_DIR="$SCRIPT_DIR/build"
 STAGE_DIR="$BUILD_DIR/stage"
 DIST_DIR="$SCRIPT_DIR/dist"
@@ -32,9 +32,10 @@ echo "==> Installing production dependencies (pure JS only, no native builds)"
 echo "==> Copying adb platform-tools"
 cp -r "$ROOT_DIR/adb" "$STAGE_DIR/adb"
 
-echo "==> Copying launcher + readme"
+echo "==> Copying launcher + readme + icon"
 cp "$SCRIPT_DIR/Launch.bat" "$STAGE_DIR/Launch.bat"
 cp "$ROOT_DIR/README.md" "$STAGE_DIR/README.md"
+cp "$ROOT_DIR/assets/icon.ico" "$STAGE_DIR/icon.ico"
 
 NODE_ZIP="$BUILD_DIR/node-$NODE_VERSION-win-x64.zip"
 if [ ! -f "$NODE_ZIP" ]; then

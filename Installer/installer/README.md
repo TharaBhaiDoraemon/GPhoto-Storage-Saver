@@ -24,7 +24,7 @@ From Linux, macOS, or Windows, with `node`, `npm`, `curl`, `unzip`, and NSIS's
 ./build.sh
 ```
 
-Output: `installer/dist/GPhotoStorageSaver-Setup.exe`.
+Output: `Installer/installer/dist/GPhotoStorageSaver-Setup.exe`.
 
 ## Files
 
@@ -33,9 +33,12 @@ Output: `installer/dist/GPhotoStorageSaver-Setup.exe`.
   `source/server.mjs`
 - `notice.txt` — the license/disclaimer page shown during install (destructive
   Trash + Reupload step warning)
-- `build.sh` — stages a clean copy of the app + deps + adb + portable Node,
-  then invokes `makensis`
+- `build.sh` — stages a clean copy of the app + deps + adb + portable Node +
+  icon, then invokes `makensis`
 - `build/`, `dist/` — generated, gitignored; safe to delete and rebuild
+
+The installer/uninstaller exe icon and both shortcuts use `../../assets/icon.ico`
+(staged in as `icon.ico`, licensed CC BY 4.0).
 
 ## Notes
 

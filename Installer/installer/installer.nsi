@@ -16,8 +16,8 @@ Var StartMenuFolder
 ; UI
 
 !define MUI_ABORTWARNING
-!define MUI_ICON "${NSISDIR}\Contrib\Graphics\Icons\modern-install.ico"
-!define MUI_UNICON "${NSISDIR}\Contrib\Graphics\Icons\modern-uninstall.ico"
+!define MUI_ICON "build\stage\icon.ico"
+!define MUI_UNICON "build\stage\icon.ico"
 
 !define MUI_FINISHPAGE_RUN "$INSTDIR\Launch.bat"
 !define MUI_FINISHPAGE_RUN_TEXT "Launch Google Photos Quota Reclaim now"
@@ -47,6 +47,7 @@ Section "Install" SecInstall
   SetOutPath "$INSTDIR"
   File "build\stage\Launch.bat"
   File "build\stage\README.md"
+  File "build\stage\icon.ico"
 
   SetOutPath "$INSTDIR\source"
   File /r "build\stage\source\*.*"
@@ -73,11 +74,11 @@ Section "Install" SecInstall
 
   !insertmacro MUI_STARTMENU_WRITE_BEGIN Application
     CreateDirectory "$SMPROGRAMS\$StartMenuFolder"
-    CreateShortCut "$SMPROGRAMS\$StartMenuFolder\Google Photos Quota Reclaim.lnk" "$INSTDIR\Launch.bat" "" "$INSTDIR\Launch.bat" 0 SW_SHOWMINIMIZED
+    CreateShortCut "$SMPROGRAMS\$StartMenuFolder\Google Photos Quota Reclaim.lnk" "$INSTDIR\Launch.bat" "" "$INSTDIR\icon.ico" 0 SW_SHOWMINIMIZED
     CreateShortCut "$SMPROGRAMS\$StartMenuFolder\Uninstall.lnk" "$INSTDIR\Uninstall.exe"
   !insertmacro MUI_STARTMENU_WRITE_END
 
-  CreateShortCut "$DESKTOP\Google Photos Quota Reclaim.lnk" "$INSTDIR\Launch.bat" "" "$INSTDIR\Launch.bat" 0 SW_SHOWMINIMIZED
+  CreateShortCut "$DESKTOP\Google Photos Quota Reclaim.lnk" "$INSTDIR\Launch.bat" "" "$INSTDIR\icon.ico" 0 SW_SHOWMINIMIZED
 SectionEnd
 
 ;--------------------------------
@@ -88,6 +89,7 @@ SectionEnd
 Section "Uninstall"
   Delete "$INSTDIR\Launch.bat"
   Delete "$INSTDIR\README.md"
+  Delete "$INSTDIR\icon.ico"
   Delete "$INSTDIR\Uninstall.exe"
   RMDir /r "$INSTDIR\source\node_modules"
   RMDir /r "$INSTDIR\source\api"

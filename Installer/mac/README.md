@@ -29,21 +29,20 @@ actually launching it should be tested on a real Mac before relying on it.
   existing `which adb` PATH-fallback picks it up with no code changes
 - `Contents/Resources/app/` — app code + `node_modules` (just `ws`, pure JS,
   no native bindings)
-- `Contents/Resources/gphoto-storage-saver.icns` — icon, generated from the
-  shared `../assets/icon.png`
+- `Contents/Resources/gphoto-storage-saver.icns` — icon (CC BY 4.0), copied
+  directly from the shared `../../assets/icon.icns`
 
 ## Build
 
-From any machine (Linux, macOS, or Windows/WSL) with `node`, `npm`,
-`python3` (with Pillow: `pip install pillow`), `curl`, `unzip`, `tar`, and
-`zip` on PATH:
+From any machine (Linux, macOS, or Windows/WSL) with `node`, `npm`, `curl`,
+`unzip`, `tar`, and `zip` on PATH:
 
 ```bash
 ./build.sh
 ```
 
-Output: `mac/dist/GPhotoStorageSaver-mac-arm64.zip` and
-`mac/dist/GPhotoStorageSaver-mac-x64.zip`.
+Output: `Installer/mac/dist/GPhotoStorageSaver-mac-arm64.zip` and
+`Installer/mac/dist/GPhotoStorageSaver-mac-x64.zip`.
 
 ## Install / run on macOS
 
@@ -65,8 +64,6 @@ Output: `mac/dist/GPhotoStorageSaver-mac-arm64.zip` and
 
 - `Launcher` — the `Contents/MacOS/GPhotoStorageSaver` script (entry point)
 - `Info.plist` — bundle metadata template
-- `make_icns.py` — converts `../assets/icon.png` to `.icns` using Pillow
-  (avoids needing macOS's `iconutil`, which isn't available on Linux)
 - `build.sh` — stages app code once, then assembles one `.app` per
   architecture and zips each
 - `build/`, `dist/` — generated, gitignored; safe to delete and rebuild

@@ -23,8 +23,9 @@ installed separately for the actual browser-driving part of the workflow.
 - `usr/lib/gphoto-storage-saver/` — app code + `node_modules` (just `ws`,
   pure JS, no native bindings)
 - `gphoto-storage-saver.desktop`, `gphoto-storage-saver.png` — desktop
-  integration metadata and a generic (non-branded) icon (sourced from the
-  shared `../assets/icon.png`, also reused by the macOS build)
+  integration metadata and icon (sourced from the shared
+  `../../assets/icon.png`, also reused by the deb and macOS builds — licensed
+  CC BY 4.0)
 
 ## Build
 
@@ -35,12 +36,12 @@ on PATH:
 ./build.sh
 ```
 
-First run downloads and caches (into `appimage/build/tools/`, gitignored):
+First run downloads and caches (into `Installer/appimage/build/tools/`, gitignored):
 portable Linux Node.js, Google's `platform-tools` (for `adb`), and
 `appimagetool` itself. No `sudo`/root or FUSE mount needed — the build uses
 `appimagetool --appimage-extract-and-run`.
 
-Output: `appimage/dist/GPhotoStorageSaver-x86_64.AppImage`.
+Output: `Installer/appimage/dist/GPhotoStorageSaver-x86_64.AppImage`.
 
 ## Run
 
@@ -57,8 +58,8 @@ integrate it into the desktop's app menu.
 
 - `AppRun` — launcher script (the actual entry point)
 - `gphoto-storage-saver.desktop` — desktop entry metadata
-- `../assets/icon.png` — shared icon (generic, hand-generated placeholder —
-  not any brand's logo), copied in at build time as `gphoto-storage-saver.png`
+- `../../assets/icon.png` — shared icon (CC BY 4.0), copied in at build time
+  as `gphoto-storage-saver.png`
 - `build.sh` — stages the AppDir (app + deps + bundled node/adb + metadata),
   then runs `appimagetool`
 - `build/`, `dist/` — generated, gitignored; safe to delete and rebuild
@@ -67,7 +68,8 @@ integrate it into the desktop's app menu.
 
 - Bump `NODE_VERSION` in `build.sh` when updating the bundled Node.js.
 - `platform-tools-latest-linux.zip` always points at Google's latest `adb`;
-  re-running `build.sh` after deleting `appimage/build/tools/platform-tools-linux.zip`
-  picks up a newer version.
+  re-running `build.sh` after deleting
+  `Installer/appimage/build/tools/platform-tools-linux.zip` picks up a newer
+  version.
 - The AppImage is unsigned; some distros' desktop environments require
   marking it executable manually before first run.

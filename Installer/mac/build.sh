@@ -2,8 +2,7 @@
 # Builds GPhotoStorageSaver-mac-arm64.zip and GPhotoStorageSaver-mac-x64.zip,
 # each containing a self-contained GPhotoStorageSaver.app bundle for macOS.
 #
-# Requires (on the build machine, e.g. Linux): node, npm, python3 (+ Pillow),
-# curl, unzip, tar, zip.
+# Requires (on the build machine, e.g. Linux): node, npm, curl, unzip, tar, zip.
 #
 # Like the Windows .exe and the Linux AppImage, this bundles its own Node.js
 # runtime and adb binary, so the only thing still expected on the target Mac
@@ -19,7 +18,7 @@ set -euo pipefail
 
 NODE_VERSION="v24.21.0"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-ROOT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
+ROOT_DIR="$(cd "$SCRIPT_DIR/../.." && pwd)"
 BUILD_DIR="$SCRIPT_DIR/build"
 DIST_DIR="$SCRIPT_DIR/dist"
 APP_STAGE="$BUILD_DIR/app-stage"
@@ -36,9 +35,6 @@ cp -r "$ROOT_DIR/source/api" "$ROOT_DIR/source/lib" "$ROOT_DIR/source/steps" \
 
 echo "==> Installing production dependencies (pure JS only, no native builds)"
 ( cd "$APP_STAGE" && npm install --omit=dev --omit=optional --no-audit --no-fund )
-
-echo "==> Generating .icns from shared icon"
-python3 "$SCRIPT_DIR/make_icns.py" "$ROOT_DIR/assets/icon.png" "$BUILD_DIR/tools/gphoto-storage-saver.icns"
 
 PLATFORM_TOOLS_ZIP="$BUILD_DIR/tools/platform-tools-mac.zip"
 if [ ! -f "$PLATFORM_TOOLS_ZIP" ]; then
@@ -67,7 +63,7 @@ build_arch() {
   mkdir -p "$contents/MacOS" "$contents/Resources/app"
 
   install -m 0644 "$SCRIPT_DIR/Info.plist" "$contents/Info.plist"
-  install -m 0644 "$BUILD_DIR/tools/gphoto-storage-saver.icns" "$contents/Resources/gphoto-storage-saver.icns"
+  install -m 0644 "$ROOT_DIR/assets/icon.icns" "$contents/Resources/gphoto-storage-saver.icns"
   install -m 0755 "$SCRIPT_DIR/Launcher" "$contents/MacOS/GPhotoStorageSaver"
   install -m 0755 "$BUILD_DIR/tools/node-$NODE_VERSION-$node_dir_arch/bin/node" "$contents/MacOS/node"
   install -m 0755 "$BUILD_DIR/tools/adb" "$contents/MacOS/adb"

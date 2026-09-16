@@ -18,12 +18,14 @@ isn't packaged in Debian's own repos the same way across distros.
   `~/.local/share/gphoto-storage-saver` (so `downloads/` and `manifest.json`
   live in the user's own home directory, not under `/usr`) and execs `node`
 - `/usr/share/applications/gphoto-storage-saver.desktop` — app menu entry
+- `/usr/share/icons/hicolor/{256x256,512x512}/apps/gphoto-storage-saver.png` —
+  icon (CC BY 4.0), resized at build time from the shared `../../assets/icon.png`
 - `/usr/share/doc/gphoto-storage-saver/` — README, copyright, changelog
 
 ## Build
 
-From a Debian/Ubuntu machine (or any Linux with `dpkg-deb`), with `node` and
-`npm` on PATH:
+From a Debian/Ubuntu machine (or any Linux with `dpkg-deb`), with `node`,
+`npm`, and ImageMagick's `convert` on PATH:
 
 ```bash
 ./build.sh
@@ -32,7 +34,7 @@ From a Debian/Ubuntu machine (or any Linux with `dpkg-deb`), with `node` and
 No `sudo`/root needed — `dpkg-deb --root-owner-group` fakes root ownership
 in the archive without requiring it on the build machine.
 
-Output: `deb/dist/gphoto-storage-saver_1.0.0_all.deb`.
+Output: `Installer/deb/dist/gphoto-storage-saver_1.0.0_all.deb`.
 
 ## Install / run / uninstall
 
@@ -48,7 +50,7 @@ sudo apt remove gphoto-storage-saver                          # uninstall (keeps
 - `gphoto-storage-saver` — the `/usr/bin` launcher wrapper script
 - `gphoto-storage-saver.desktop` — app menu entry
 - `copyright`, `changelog` — Debian doc policy files
-- `build.sh` — stages app + deps + metadata, then runs `dpkg-deb --build`
+- `build.sh` — stages app + deps + metadata + icon, then runs `dpkg-deb --build`
 - `build/`, `dist/` — generated, gitignored; safe to delete and rebuild
 
 ## Notes

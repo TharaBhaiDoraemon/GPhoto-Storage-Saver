@@ -15,7 +15,7 @@ set -euo pipefail
 NODE_VERSION="v24.21.0"
 APPIMAGETOOL_VERSION="1.9.1"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-ROOT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
+ROOT_DIR="$(cd "$SCRIPT_DIR/../.." && pwd)"
 BUILD_DIR="$SCRIPT_DIR/build"
 APPDIR="$BUILD_DIR/AppDir"
 DIST_DIR="$SCRIPT_DIR/dist"

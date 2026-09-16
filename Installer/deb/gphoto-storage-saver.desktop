@@ -6,4 +6,4 @@ Comment=Reclaim Google Photos storage quota via a Pixel phone
 Exec=gphoto-storage-saver
 Terminal=true
 Categories=Utility;
-Icon=utilities-terminal
+Icon=gphoto-storage-saver
